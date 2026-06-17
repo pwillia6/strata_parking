@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="manifest.json">
+    <title>Car Parking Enforcement App</title>
+    <script>
+        // If none of these common mobile user agent strings are present,
+        // we treat it as a desktop device.
+        if (!/Android|webOS|iPhone|iPad|iPod|BlackBerry|Windows Phone|Opera Mini|IEMobile/i.test(navigator.userAgent) && window.location.hash !== '#bypass') {
+            window.location.href = 'offend.php';
+        }
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* .container changed to only have 5px on the left and right, 10px top/bottom */
+        .container {
+            margin: 0 0;
+            xwidth:400px;
+        }
+
+        /* Top menu styling */
+        .top-menu {
+            background-color: #007bff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 50px;
+            margin: 0;
+            padding: 0;
+        }
+        .top-menu select {
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            outline: none;
+            font-size: 24px; /* Changed from 16px to 24px for 150% bigger text */
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        #upload-button {
+            background-color: #28a745; /* Green */
+            color: #ffffff;
+            border: none;
+            outline: none;
+            font-size: 24px;
+            padding: 8px 12px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        #install-button {
+            background-color: #ffc107; /* Yellow background */
+            color: #212529; /* Dark text for contrast */
+            border: none;
+            outline: none;
+            font-size: 24px; /* Match dropdown font size */
+            padding: 8px 12px; /* Match dropdown padding */
+            cursor: pointer;
+            width: 100%; /* Make it full width */
+            height: 50px; /* Match banner height */
+        }
+        .top-menu select option {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            display: none;
+        }
+
+        .video-container {
+        }
+
+        #video {
+            display: block;
+            width: 100%;
+            height: auto;
+            cursor: pointer;
+            background: #e7f3ff;
+            touch-action: manipulation;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        #activity {
+            padding: 5px;
+            border: 1px solid #007bff;
+            background: #e7f3ff;
+            font-weight: bold;
+            text-align: center;
+            height: 24px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        #log {
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+            text-align: left;
+            overflow-wrap: break-word;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Install button container -->
+        <div id="install-container" style="display: none;">
+            <button id="install-button">Install App</button>
+        </div>
+        <!-- Dropdown menu at the top -->
+        <div class="top-menu">
+            <select id="apiSelect">
+                <option value="api2.php" selected>Visitors</option>
+                <option value="api3.php">Survey</option>
+                <option value="api4.php">Notice</option>
+            </select>
+            <button id="upload-button">Upload (0)</button>
+        </div>
+
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="container video-container">
+        <video id="video" autoplay playsinline></video>
+        <div id="overlay">Snapped!</div>
+        <audio id="click-sound" src="click.mp3" preload="auto"></audio>
+    </div>
+
+    <div class="container">
+        <div id="activity">Waiting for user action...</div>
+    </div>
+    <div class="container">
+        <div id="log"></div>
+        <audio id="bell-sound" src="bell.mp3" preload="auto"></audio>
+    </div>
+    
+    <!-- Dexie.js for easier IndexedDB handling -->
+    <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
+    <script>
+        let deferredPrompt;
+        const installContainer = document.getElementById('install-container');
+
+        // --- Database Setup (Dexie.js) ---
+        const db = new Dexie('ParkingAppDatabase');
+        db.version(1).stores({
+            pending_uploads: '++id, phototime' // Primary key 'id' will auto-increment
+        });
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            deferredPrompt = e;
+            // Update UI to notify the user they can install the PWA
+            installContainer.style.display = 'block';
+
+            installContainer.addEventListener('click', () => {
+                // Hide the install button container
+                installContainer.style.display = 'none';
+                // Show the install prompt
+                deferredPrompt.prompt();
+                // Wait for the user to respond to the prompt
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                    } else {
+                        console.log('User dismissed the install prompt');
+                    }
+                    deferredPrompt = null;
+                });
+            });
+        });
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            const requestVersionFromSW = () => {
+                if (navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({ action: 'GET_VERSION' });
+                }
+            };
+
+            navigator.serviceWorker.addEventListener('message', event => {
+                if (event.data && event.data.version) {
+                    // Make sure we don't log the version multiple times
+                    if (!document.getElementById('log').innerHTML.includes('<strong>Version:</strong>')) {
+                         appendToLog(`<strong>Version:</strong> ${event.data.version}`);
+                    }
+                }
+            });
+
+            navigator.serviceWorker.register('/sw.js').then(registration => {
+                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                // If a service worker is already in control, request the version.
+                if (navigator.serviceWorker.controller) {
+                    requestVersionFromSW();
+                }
+                // Listen for a new service worker to take control and reload the page
+                // to ensure the latest assets are used.
+                let refreshing;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (refreshing) return;
+                    window.location.reload();
+                    refreshing = true;
+                });
+            }).catch(err => {
+                console.log('ServiceWorker registration failed: ', err);
+            });
+        }
+
+        let isUploading = false;
+        let pendingUploadsCount = 0; // Sync counter for beforeunload
+        let successfulPings = 0;
+        let pingIntervalId = null;
+        
+        window.addEventListener('beforeunload', (event) => {
+            if (pendingUploadsCount > 0 && !isUploading) {
+                const message = `You have ${pendingUploadsCount} unsaved photos. Are you sure you want to leave?`;
+                event.preventDefault();
+                event.returnValue = message;
+                return message;
+            }
+        });
+
+        const video = document.getElementById('video');
+        const clickSound = document.getElementById('click-sound');
+        const bellSound = document.getElementById('bell-sound');
+        const canvas = document.getElementById('canvas');
+        const activity = document.getElementById('activity');
+        const log = document.getElementById('log');
+        const overlay = document.getElementById('overlay');
+        const uploadButton = document.getElementById('upload-button');
+
+        // --- UUID Management ---
+        function generateUUID() { // Public Domain/MIT
+            var d = new Date().getTime();
+            var d2 = ((typeof performance !== 'undefined') && performance.now && (performance.now()*1000)) || 0;
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16;
+                if(d > 0){
+                    r = (d + r)%16 | 0;
+                    d = Math.floor(d/16);
+                } else {
+                    r = (d2 + r)%16 | 0;
+                    d2 = Math.floor(d2/16);
+                }
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+        }
+
+        let userUUID = localStorage.getItem('uuid');
+        if (!userUUID) {
+            userUUID = generateUUID();
+            localStorage.setItem('uuid', userUUID);
+        }
+
+        // Access the user's camera
+        navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { exact: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+        })
+        .then((stream) => {
+            video.srcObject = stream;
+        })
+        .catch((err) => {
+            console.error('Error accessing the camera:', err);
+            alert('Unable to access the rear camera. Trying the default camera.');
+
+            // Fallback to default camera
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then((stream) => {
+                    video.srcObject = stream;
+                })
+                .catch((err) => {
+                    console.error('Error accessing the default camera:', err);
+                    alert('Unable to access the camera.');
+                });
+        });
+
+        function startPinging() {
+            if (pingIntervalId === null && pendingUploadsCount > 0 && !isUploading) {
+                console.log("Starting ping mechanism.");
+                appendToLog("Connection unstable. Will attempt to auto-upload when stable.");
+                pingServer(); // Ping immediately, then set interval
+                pingIntervalId = setInterval(pingServer, 60000); // every minute
+            }
+        }
+
+        function stopPinging() {
+            if (pingIntervalId !== null) {
+                console.log("Stopping ping mechanism.");
+                clearInterval(pingIntervalId);
+                pingIntervalId = null;
+                successfulPings = 0;
+            }
+        }
+
+        async function pingServer() {
+            // Don't ping if already uploading or if there's nothing to upload.
+            if (isUploading || pendingUploadsCount === 0) { 
+                stopPinging();
+                return;
+            }
+            try {
+                const response = await fetch('api2.php?ping=1');
+                if (response.ok && await response.text() === 'pong') {
+                    updateActivity(`Connection stable. Auto-upload in ${5 - successfulPings} minute(s)...`);
+                    successfulPings++;
+                    console.log(`Successful ping #${successfulPings}`);
+                    if (successfulPings >= 5) {
+                        console.log("5 successful pings. Triggering auto-upload.");
+                        stopPinging(); // Stop pinging once we start uploading
+                        uploadButton.click();
+                    }
+                } else {
+                    throw new Error('Ping failed or invalid response.');
+                }
+            } catch (error) {
+                console.error("Ping failed:", error.message);
+                updateActivity("Connection failed. Retrying...");
+                successfulPings = 0; // Reset on failure
+            }
+            if (isUploading || pendingUploadsCount === 0) { 
+                stopPinging();
+                return;
+            }
+
+        }
+
+        async function updateUploadButton() {
+            try {
+                pendingUploadsCount = await db.pending_uploads.count();
+                uploadButton.textContent = `Upload (${pendingUploadsCount})`;
+                if (pendingUploadsCount > 0) {
+                    uploadButton.style.backgroundColor = '#dc3545'; // Red
+                } else {
+                    uploadButton.style.backgroundColor = '#28a745'; // Green
+                }
+
+                if (pendingUploadsCount > 0 && !isUploading) {
+                    startPinging();
+                } else {
+                    stopPinging();
+                }
+            } catch (error) {
+                console.error("Failed to update upload button count:", error);
+            }
+        }
+
+        video.addEventListener('click', async () => {
+            try {
+                const context = canvas.getContext('2d');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Convert the canvas to a Blob for efficient IndexedDB storage
+                const photoBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+
+                // Prepare the timestamp in MySQL TIMESTAMP format using UTC time
+                const now = new Date();
+                const phototime = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')} ${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}:${String(now.getUTCSeconds()).padStart(2, '0')}`;
+
+                const apiEndpoint = document.getElementById('apiSelect').value;
+
+                // Add to IndexedDB
+                await db.pending_uploads.add({
+                    photoBlob: photoBlob,
+                    phototime: phototime,
+                    api: apiEndpoint
+                });
+
+                pendingUploadsCount++; // Increment sync counter
+                updateUploadButton(); // Update UI
+
+                overlay.style.display = 'block';
+                clickSound.play();
+                updateActivity(`Photo saved locally. ${pendingUploadsCount} pending.`);
+
+                // Hide the overlay after 3 seconds
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 500);
+
+                checkStorage();
+
+            } catch (error) {
+                console.error('Error capturing photo:', error);
+                appendToLog(`<strong>Error:</strong> ${error.message}`);
+                updateActivity(`Error: ${error.message}`);
+            }
+        });
+
+        async function checkStorage() {
+            try {
+                if (navigator.storage && navigator.storage.estimate) {
+                    const estimate = await navigator.storage.estimate();
+                    const usageMB = (estimate.usage / (1024 * 1024)).toFixed(2);
+                    const quotaMB = (estimate.quota / (1024 * 1024)).toFixed(2);
+                    const usagePercent = ((estimate.usage / estimate.quota) * 100).toFixed(0);
+
+                    if (usagePercent > 80) {
+                        alert(`Storage is almost full (${usageMB}MB / ${quotaMB}MB used). Please upload pending photos.`);
+                    }
+                }
+            } catch (e) {
+                console.error("Could not check storage:", e);
+            }
+        }
+
+        uploadButton.addEventListener('click', async () => {
+            if (pendingUploadsCount === 0) {
+                alert('No photos to upload.');
+                return;
+            }
+
+            if (isUploading) {
+                alert('Upload already in progress.');
+                return;
+            }
+
+            stopPinging(); // User manually started upload, so stop pinging.
+
+            isUploading = true;
+            uploadButton.disabled = true;
+            const totalToUpload = pendingUploadsCount;
+            let uploadedCount = 0;
+            
+            // Fetch all pending uploads into a static array before iterating
+            const uploadsToProcess = await db.pending_uploads.toArray();
+
+            for (const upload of uploadsToProcess) {
+                uploadedCount++;
+                uploadButton.textContent = `Uploading ${uploadedCount}/${totalToUpload}...`;
+
+                const formData = new FormData();
+                formData.append('photo', upload.photoBlob, 'photo.jpg');
+                formData.append('phototime', upload.phototime);
+                formData.append('uuid', userUUID);
+
+                const success = await uploadPhotoWithRetry(formData, upload.api);
+
+                if (success) {
+                    // Remove from IndexedDB on successful upload
+                    await db.pending_uploads.delete(upload.id);
+                    pendingUploadsCount--; // Decrement sync counter
+                    updateUploadButton(); // Update UI
+                }
+            }
+
+            // Final UI update
+            updateActivity(`Upload process finished. ${pendingUploadsCount} photos remaining.`);
+
+            isUploading = false;
+            uploadButton.disabled = false;
+            updateUploadButton();
+
+            // If there are still pending uploads after trying, restart the pinging process.
+            if (pendingUploadsCount > 0) {
+                startPinging();
+            }
+        });
+
+        async function uploadPhotoWithRetry(formData, apiEndpoint) {
+            let attempt = 0;
+            let delay = 1000; // Start with 1 second delay
+
+            while (true) {
+                try {
+                    attempt++;
+                    updateActivity(`Attempting API call... Attempt #${attempt}`);
+
+                    const response = await fetch(apiEndpoint, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP Error: ${response.status}`);
+                    }
+
+                    const result = await response.text();
+                    appendToLog(`<strong>Response:</strong> ${result}`);
+                    updateActivity(`Success! Response received.`);
+                    bellSound.play();
+                    return true; // Indicate success
+
+                } catch (error) {
+                    console.error(`Attempt ${attempt} failed. Retrying in ${delay / 1000} seconds...`, error);
+                    updateActivity(`Retry #${attempt} in ${delay / 1000}s`);
+
+                    // Wait before retrying
+                    await new Promise(resolve => setTimeout(resolve, delay));
+
+                    // Increase the delay for the next attempt (exponential backoff), capped at 30s
+                    delay = Math.min(delay * 2, 30000);
+
+                    if (attempt >= 5) { // Give up after 5 attempts
+                        appendToLog(`<strong>Upload Failed:</strong> After 5 attempts for photo at ${formData.get('phototime')}.`);
+                        return false; // Indicate failure
+                    }
+                }
+            }
+        }
+
+        function appendToLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `[${timestamp}] ${message}\n`;
+        }
+
+        function updateActivity(message) {
+            activity.textContent = message;
+        }
+
+        // Initial button state
+        updateUploadButton();
+
+        // Log the UUID
+        appendToLog(`\n<strong>UUID:</strong> ${userUUID}`);
+    </script>
+</body>
+</html>

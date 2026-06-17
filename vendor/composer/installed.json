@@ -1,0 +1,93 @@
+[
+    {
+        "name": "tinybutstrong/opentbs",
+        "version": "v1.12.1",
+        "version_normalized": "1.12.1.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/Skrol29/opentbs.git",
+            "reference": "7525dcfd9d9afb10e46b2afe58c20bedb544afe1"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/Skrol29/opentbs/zipball/7525dcfd9d9afb10e46b2afe58c20bedb544afe1",
+            "reference": "7525dcfd9d9afb10e46b2afe58c20bedb544afe1",
+            "shasum": ""
+        },
+        "require": {
+            "php": ">=5.0",
+            "tinybutstrong/tinybutstrong": ">=3.15.1"
+        },
+        "time": "2024-03-07T02:19:17+00:00",
+        "type": "library",
+        "installation-source": "dist",
+        "autoload": {
+            "classmap": [
+                "tbs_plugin_opentbs.php"
+            ]
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "LGPL-3.0-only"
+        ],
+        "authors": [
+            {
+                "name": "Skrol29",
+                "email": "skrol29dev@gmail.com"
+            }
+        ],
+        "description": "With OpenTBS you can merge LibreOffice, OpenOffice and Ms Office documents with PHP using the TinyButStrong template engine. Simple use LibreOffice, OpenOffice or Ms Office to edit your templates : DOCX, XLSX, PPTX, ODT, OSD, ODP and other formats.",
+        "homepage": "http://www.tinybutstrong.com/opentbs.php",
+        "keywords": [
+            "docx",
+            "odp",
+            "ods",
+            "odt",
+            "pptx",
+            "templating",
+            "xlsx"
+        ]
+    },
+    {
+        "name": "tinybutstrong/tinybutstrong",
+        "version": "v3.15.2",
+        "version_normalized": "3.15.2.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/Skrol29/tinybutstrong.git",
+            "reference": "c4344b3599570cdf283692b2ad0d4682dc85ae52"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/Skrol29/tinybutstrong/zipball/c4344b3599570cdf283692b2ad0d4682dc85ae52",
+            "reference": "c4344b3599570cdf283692b2ad0d4682dc85ae52",
+            "shasum": ""
+        },
+        "require": {
+            "php": ">=5.0"
+        },
+        "time": "2024-05-08T01:00:58+00:00",
+        "type": "library",
+        "installation-source": "dist",
+        "autoload": {
+            "classmap": [
+                "tbs_class.php"
+            ]
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "LGPL-3.0-only"
+        ],
+        "authors": [
+            {
+                "name": "Skrol29",
+                "email": "skrol29dev@gmail.com"
+            }
+        ],
+        "description": "Template Engine for Pro and Beginners ",
+        "homepage": "http://www.tinybutstrong.com",
+        "keywords": [
+            "templating"
+        ]
+    }
+]

@@ -1,0 +1,14 @@
+<?php
+
+// Google OAuth Credentials
+define('OAUTH_GOOGLE_CLIENT_ID', '953983844862-je9k19iukosve7agnc29ke9rk37kj3mn.apps.googleusercontent.com');
+define('OAUTH_GOOGLE_CLIENT_SECRET', '<fillme>');
+
+// Microsoft OAuth Credentials
+define('OAUTH_MICROSOFT_CLIENT_ID', '6fe249dd-f1e1-4505-8015-f87cb48a62a3');
+define('OAUTH_MICROSOFT_CLIENT_SECRET', '<fillme>');
+define('OAUTH_MICROSOFT_TENANT', 'common'); // or your tenant ID
+
+// OpenAI API Key
+define('OPENAI_API_KEY', '<fillme>');
+~                                     

@@ -1,0 +1,6 @@
+{
+    "require": {
+        "tinybutstrong/tinybutstrong": "^3.15",
+        "tinybutstrong/opentbs": "^1.12"
+    }
+}

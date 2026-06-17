@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="manifest.json">
+    <title>Car Parking Enforcement App</title>
+    <script>
+        // If none of these common mobile user agent strings are present,
+        // we treat it as a desktop device.
+        if (!/Android|webOS|iPhone|iPad|iPod|BlackBerry|Windows Phone|Opera Mini|IEMobile/i.test(navigator.userAgent) && window.location.hash !== '#bypass') {
+            window.location.href = 'offend.php';
+        }
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* .container changed to only have 5px on the left and right, 10px top/bottom */
+        .container {
+            margin: 0 0;
+            xwidth:400px;
+        }
+
+        /* Top menu styling */
+        .top-menu {
+            background-color: #007bff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 50px;
+            margin: 0;
+            padding: 0;
+        }
+        .top-menu select {
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            outline: none;
+            font-size: 24px; /* Changed from 16px to 24px for 150% bigger text */
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        #install-button {
+            background-color: #ffc107; /* Yellow background */
+            color: #212529; /* Dark text for contrast */
+            border: none;
+            outline: none;
+            font-size: 24px; /* Match dropdown font size */
+            padding: 8px 12px; /* Match dropdown padding */
+            cursor: pointer;
+            width: 100%; /* Make it full width */
+            height: 50px; /* Match banner height */
+        }
+        .top-menu select option {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            display: none;
+        }
+
+        .video-container {
+        }
+
+        #video {
+            display: block;
+            width: 100%;
+            height: auto;
+            cursor: pointer;
+            background: #e7f3ff;
+            touch-action: manipulation;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        #activity {
+            padding: 5px;
+            border: 1px solid #007bff;
+            background: #e7f3ff;
+            font-weight: bold;
+            text-align: center;
+            height: 24px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        #log {
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+            text-align: left;
+            overflow-wrap: break-word;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Install button container -->
+        <div id="install-container" style="display: none;">
+            <button id="install-button">Install App</button>
+        </div>
+        <!-- Dropdown menu at the top -->
+        <div class="top-menu">
+            <select id="apiSelect">
+                <option value="api2.php" selected>Visitors</option>
+                <option value="api3.php">Survey</option>
+                <option value="api4.php">Notice</option>
+            </select>
+        </div>
+
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="container video-container">
+        <video id="video" autoplay playsinline></video>
+        <div id="overlay">Snapped!</div>
+        <audio id="click-sound" src="click.mp3" preload="auto"></audio>
+    </div>
+
+    <div class="container">
+        <div id="activity">Waiting for user action...</div>
+    </div>
+    <div class="container">
+        <div id="log"></div>
+        <audio id="bell-sound" src="bell.mp3" preload="auto"></audio>
+    </div>
+
+    <script>
+        let deferredPrompt;
+        const installContainer = document.getElementById('install-container');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            deferredPrompt = e;
+            // Update UI to notify the user they can install the PWA
+            installContainer.style.display = 'block';
+
+            installContainer.addEventListener('click', () => {
+                // Hide the install button container
+                installContainer.style.display = 'none';
+                // Show the install prompt
+                deferredPrompt.prompt();
+                // Wait for the user to respond to the prompt
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                    } else {
+                        console.log('User dismissed the install prompt');
+                    }
+                    deferredPrompt = null;
+                });
+            });
+        });
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+
+        
+        window.addEventListener('beforeunload', (event) => {
+            const message = "Are you sure you want to leave? Check all images are processed first.";
+            event.preventDefault();
+            event.returnValue = message;
+            return message;
+        });
+
+        const video = document.getElementById('video');
+        const clickSound = document.getElementById('click-sound');
+        const bellSound = document.getElementById('bell-sound');
+        const canvas = document.getElementById('canvas');
+        const activity = document.getElementById('activity');
+        const log = document.getElementById('log');
+        const overlay = document.getElementById('overlay');
+
+        // Access the user's camera
+        navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { exact: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+        })
+        .then((stream) => {
+            video.srcObject = stream;
+        })
+        .catch((err) => {
+            console.error('Error accessing the camera:', err);
+            alert('Unable to access the rear camera. Trying the default camera.');
+
+            // Fallback to default camera
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then((stream) => {
+                    video.srcObject = stream;
+                })
+                .catch((err) => {
+                    console.error('Error accessing the default camera:', err);
+                    alert('Unable to access the camera.');
+                });
+        });
+
+        video.addEventListener('click', async () => {
+            try {
+                const context = canvas.getContext('2d');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Convert the canvas to a Blob
+                const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg'));
+
+                // Prepare the timestamp in MySQL TIMESTAMP format using UTC time
+                const now = new Date();
+                const phototime = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')} ${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}:${String(now.getUTCSeconds()).padStart(2, '0')}`;
+
+                // Prepare the HTTP POST request
+                const formData = new FormData();
+                formData.append('photo', blob, 'photo.jpg');
+                formData.append('phototime', phototime);
+
+                overlay.style.display = 'block';
+                clickSound.play();
+
+                // Hide the overlay after 3 seconds
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 3000);
+
+                // Call the API with a retry mechanism
+                await uploadPhotoWithRetry(formData);
+
+            } catch (error) {
+                console.error('Error capturing photo:', error);
+                appendToLog(`<strong>Error:</strong> ${error.message}`);
+                updateActivity(`Error: ${error.message}`);
+            }
+        });
+
+        async function uploadPhotoWithRetry(formData) {
+            const apiSelect = document.getElementById('apiSelect');  // Menu for which API to call
+            let attempt = 0;
+            let delay = 1000; // Start with 1 second delay
+
+            while (true) {
+                try {
+                    attempt++;
+                    updateActivity(`Attempting API call... Attempt #${attempt}`);
+
+                    // Select the correct API endpoint based on the drop-down
+                    const response = await fetch(`${apiSelect.value}`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
+                    const result = await response.text();
+                    appendToLog(`<strong>Response:</strong> ${result}`);
+                    updateActivity(`Success! Response received.`);
+                    bellSound.play();
+                    break; // Exit the loop on success
+
+                } catch (error) {
+                    console.error(`Attempt ${attempt} failed. Retrying in ${delay / 1000} seconds...`, error);
+                    updateActivity(`Retry #${attempt} in ${delay / 1000}s`);
+
+                    // Wait before retrying
+                    await new Promise(resolve => setTimeout(resolve, delay));
+
+                    // Increase the delay for the next attempt (exponential backoff), capped at 30s
+                    delay = Math.min(delay * 2, 30000);
+                }
+            }
+        }
+
+        function appendToLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `[${timestamp}] ${message}\n`;
+        }
+
+        function updateActivity(message) {
+            activity.textContent = message;
+        }
+    </script>
+</body>
+</html>

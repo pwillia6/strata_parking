@@ -1,0 +1,159 @@
+.row {
+    display: flex;          /* Place table and preview side by side */
+    align-items: flex-start;
+  }
+
+.table-container {
+margin-right: 20px;     /* Spacing between the table and image preview */
+}
+
+#image-preview {
+    margin: 1em 0; 
+width: 400px;           /* Adjust as needed */
+border: 2px solid #4e54c8;
+padding:1px;
+display: flex;
+justify-content: center;
+align-items: center;
+background-color: #fafafa;
+overflow: hidden;       /* If images are large, this hides overflow */
+position: relative;
+}
+
+#image-preview img {
+display: none;          /* Hide images by default */
+max-width: 100%;
+max-height: 100%;
+}
+
+.plate:hover {
+background-color: #eee;
+}
+
+/* Basic reset for margins and padding */
+* {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+
+/* BODY STYLING */
+body {
+font-family: Arial, sans-serif;
+background: #f0f0f0; /* Subtle background color */
+margin: 20px;
+color: #333;         /* Default text color */
+line-height: 1.6;    /* Improve readability */
+}
+
+/* NAVIGATION BAR STYLES (Same decorative menu as before) */
+nav {
+background: linear-gradient(to right, #4e54c8, #8f94fb);
+border-radius: 8px;
+box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+overflow: hidden;
+margin-bottom: 20px; /* Space under menu */
+}
+nav ul {
+display: flex;      /* Horizontal layout */
+list-style: none;  
+justify-content: center;
+}
+nav ul li a {
+display: inline-block;
+padding: 15px 20px;
+text-decoration: none;
+color: #fff;
+font-weight: 600;
+transition: background 0.3s, color 0.3s;
+border-radius: 4px;
+}
+nav ul li a:hover {
+background: rgba(255, 255, 255, 0.2);
+}
+nav ul li a.active {
+background: #fff; 
+color: #4e54c8;
+font-weight: bold;
+}
+
+/* HEADINGS STYLING */
+h1, h2, h3, h4, h5, h6 {
+margin-bottom: 0.6em;  /* Spacing under headings */
+font-weight: 700;      /* Make headings bold */
+color: #4e54c8;        /* Accent color for headings */
+}
+
+/* PARAGRAPH STYLING */
+p {
+margin-bottom: 1em;    /* Spacing after paragraphs */
+}
+
+/* TABLE STYLING */
+table {
+width: 100%;
+border-collapse: collapse; /* Merge borders for a cleaner look */
+margin: 1em 0;            /* Space above and below the table */
+background-color: #fff;   /* White background for clarity */
+border-radius: 5px;       /* Slight rounding of corners (requires some overflow handling if you want to see rounded edges) */
+overflow: hidden;
+}
+th, td {
+border: 1px solid #ddd;
+padding: 0.75em 1em;      /* Spacing inside cells */
+text-align: left;
+}
+th {
+background-color: #4e54c8;
+color: #fff;
+}
+/* Alternate row coloring for readability */
+tbody tr:nth-child(even) {
+background-color: #f9f9f9;
+}
+/* *** */
+.container {
+    width: 90%;
+    max-width: none; /* Optional: Limit maximum width */
+    margin: 10px auto; /* Center all elements */
+}
+
+.offenceenv {
+    clear: both;
+    border: 1px solid #c00;
+    margin-bottom: 10px;
+    background-color: #e0e0e0;
+}
+
+button {
+
+}
+
+.red {
+    background-color:#c00 !important;
+}
+
+.offenceheading {
+    clear: both;
+    background-color: #c00;
+    color: white;
+    padding: 5px;
+    margin: 0;
+}
+
+.offence {
+    width: 200px;
+    float: left;
+    margin-bottom: 10px;
+    border: 2px solid #c00;
+    background-color: white;
+    margin: 0px;
+}
+
+.offence img {
+    width: 200px;
+}
+
+.timestamp {
+    text-align: center;;
+}
