@@ -4,3 +4,4 @@ composer.lock
 var/
 lib/config.php
 etc/certificates
+*.gitignore

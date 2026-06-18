@@ -161,6 +161,7 @@ if (isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'parking.cweb.com.
       <li><a href="survey.php">Survey Photos</a></li>
       <li><a href="offender_photos.php">Offender Photos</a></li>
       <li><a href="manage_permissions.php">Manage Permissions</a></li>
+      <li><a href="manage_templates.php">Manage Templates</a></li>
     </ul>
     <div class="logout-link">
         <a href="logout.php">Logout</a>
