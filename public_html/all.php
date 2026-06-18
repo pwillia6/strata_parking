@@ -148,19 +148,7 @@ function render_pagination($current_page, $total_pages, $params = []) {
 <?php
 include 'nav.php';
 
-// Add to database 
-// Create a connection to MySQL
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "parking";
-
-$conn = new mysqli($host, $user, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+$conn = Database::getConnection();
 
 // Only show the search form if we are not viewing a specific record by ID
 if (!isset($_GET['id'])) {
@@ -502,7 +490,7 @@ render_pagination($current_page, $total_pages, $query_params);
 
 <?
 
-$conn->close();
+Database::close();
 
 ?>
 </body>

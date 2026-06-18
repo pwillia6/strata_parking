@@ -25,17 +25,13 @@ if (json_last_error() !== JSON_ERROR_NONE || !is_array($noticeQueryStrings) || e
 // Include the TBS library.
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// --- Database Connection ---
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "parking";
-$conn = new mysqli($host, $user, $password, $dbname);
-
-if ($conn->connect_error) {
+try {
+    // --- Database Connection ---
+    $conn = Database::getConnection();
+} catch (Exception $e) {
     header('Content-Type: application/json');
     http_response_code(500); // Internal Server Error
-    echo json_encode(array('status' => 'error', 'message' => 'Database connection failed: ' . $conn->connect_error));
+    echo json_encode(array('status' => 'error', 'message' => $e->getMessage()));
     exit;
 }
 
@@ -176,7 +172,7 @@ foreach ($noticeQueryStrings as $queryString) {
 
     $attachmentFiles[] = array('path' => $filepath, 'name' => $filename);
 }
-$conn->close();
+Database::close();
 
 // --- Emailing Section ---
 $to = "00511306782@print.brother.com";  // PW Printer

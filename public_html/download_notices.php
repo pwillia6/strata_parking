@@ -4,20 +4,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 $plate = $_GET['plate'];
 
-/* Get photos */
-// Add to database 
-// Create a connection to MySQL
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "parking";
-
-$conn = new mysqli($host, $user, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+$conn = Database::getConnection();
 
 
  /* Convert a dd-mm-yy date in Sydney time to UTC, returning the first or last second of that day.
@@ -152,6 +139,8 @@ $TBS->VarRef['platex'] = $plate;
 
 // Merge the images
 $TBS->MergeBlock('blkImg', $images);
+
+Database::close();
 
 $TBS->Show(OPENTBS_DOWNLOAD, 'Notice ' . $plate . '-' . $_GET['dateto'] . '.docx' );
 exit;

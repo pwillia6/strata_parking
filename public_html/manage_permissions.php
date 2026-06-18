@@ -13,18 +13,9 @@
 <?php
 include 'nav.php';
 
-// Database connection details
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "parking";
+$conn = Database::getConnection();
 
-$conn = new mysqli($host, $user, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
+// Handle form submissions and GET requests
 $message = '';
 $plate_value = '';
 $unitnumber_value = '';
@@ -182,7 +173,7 @@ if ($stmt_list) {
     $stmt_list->close();
 }
 
-$conn->close();
+Database::close();
 ?>
 
 <h1>Manage Visitor Permissions</h1>

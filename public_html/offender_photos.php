@@ -14,19 +14,7 @@
 
 include 'nav.php';
 
-// Add to database 
-// Create a connection to MySQL
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "parking";
-
-$conn = new mysqli($host, $user, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+$conn = Database::getConnection();
 
 $sql = "SELECT p1.id, p1.plate, p1.uploadFile, p1.phototime, CONVERT_TZ(p1.phototime, '+00:00', 'Australia/Sydney') as local_timezone
 FROM parking_records p1
@@ -82,7 +70,7 @@ if ($result->num_rows > 0) {
         echo '<div class="offence">';
         echo "<a class=\"vehicle\" href=\"download.php?file=$filePath\"><img src='data:image/jpeg;base64," . htmlspecialchars($base64Image) . "' alt='Photo'></a>";
         echo "<div class=\"timestamp\">". htmlspecialchars($formattedPhototime)  . "</div>";
-        echo "<div class=\"timestamp\"><a href=\"api2.php?id="  . htmlspecialchars($row['id']) . "\">Reprocess " . $row['id'] . "</a></div>";
+        echo "<div class=\"timestamp\"><a href=\"api_visitor.php?id="  . htmlspecialchars($row['id']) . "\">Reprocess " . $row['id'] . "</a></div>";
 
         echo "</div>";
     }
@@ -97,7 +85,7 @@ if ($result->num_rows > 0) {
 
 
 
-$conn->close();
+Database::close();
 
 ?>
 </div>

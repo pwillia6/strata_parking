@@ -131,9 +131,9 @@
         <!-- Dropdown menu at the top -->
         <div class="top-menu">
             <select id="apiSelect">
-                <option value="api2.php" selected>Visitors</option>
-                <option value="api3.php">Survey</option>
-                <option value="api4.php">Notice</option>
+                <option value="api_visitor.php" selected>Visitors</option>
+                <option value="api_survey.php">Survey</option>
+                <option value="api_notice.php">Notice</option>
             </select>
             <button id="upload-button">Upload (0)</button>
         </div>
@@ -321,7 +321,7 @@
                 return;
             }
             try {
-                const response = await fetch('api2.php?ping=1');
+                const response = await fetch('api_visitor.php?ping=1');
                 if (response.ok && await response.text() === 'pong') {
                     updateActivity(`Connection stable. Auto-upload in ${5 - successfulPings} minute(s)...`);
                     successfulPings++;
@@ -495,7 +495,9 @@
                     });
 
                     if (!response.ok) {
-                        throw new Error(`HTTP Error: ${response.status}`);
+                        // Read the error message from the server's response body
+                        const errorText = await response.text();
+                        throw new Error(`Server Error (${response.status}): ${errorText}`);
                     }
 
                     const result = await response.text();
@@ -505,8 +507,9 @@
                     return true; // Indicate success
 
                 } catch (error) {
-                    console.error(`Attempt ${attempt} failed. Retrying in ${delay / 1000} seconds...`, error);
+                    console.error(`Attempt ${attempt} failed.`, error);
                     updateActivity(`Retry #${attempt} in ${delay / 1000}s`);
+                    appendToLog(`<strong>Attempt #${attempt} Failed:</strong> ${error.message}`);
 
                     // Wait before retrying
                     await new Promise(resolve => setTimeout(resolve, delay));
@@ -515,7 +518,7 @@
                     delay = Math.min(delay * 2, 30000);
 
                     if (attempt >= 5) { // Give up after 5 attempts
-                        appendToLog(`<strong>Upload Failed:</strong> After 5 attempts for photo at ${formData.get('phototime')}.`);
+                        appendToLog(`<strong>Upload Failed Permanently:</strong> After 5 attempts for photo at ${formData.get('phototime')}.`);
                         return false; // Indicate failure
                     }
                 }

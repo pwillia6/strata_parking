@@ -1,23 +1,19 @@
 <?php
 /**
- * generate_pdf.php
+ * download_pdf.php
  *
- * Example script that:
- * 1. Reads comma-separated IDs from `?ids=1,2,3`.
- * 2. Queries `parking_records` for those IDs.
- * 3. Converts `phototime` from UTC to Australia/Sydney.
- * 4. Generates a PDF (4 images per page) using FPDF.
+ * Reads comma-separated IDs or a plate number from the query string,
+ * fetches the corresponding parking records, and generates a PDF
+ * with the images of the vehicles.
  */
 
 // --------------------------------------------------
 // 1. Include FPDF library
-//    Make sure fpdf.php is in the same directory or
-//    adjust the path accordingly.
 // --------------------------------------------------
 require_once('lib/fpdf.php');
 
 // --------------------------------------------------
-// 2. OPTIONAL: Adjust error reporting for PHP 5
+// 2. Error Reporting
 // --------------------------------------------------
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -25,15 +21,8 @@ ini_set('display_errors', 1);
 // --------------------------------------------------
 // 3. Database Connection
 // --------------------------------------------------
-$host     = "localhost";
-$db       = "parking";
-$user     = "root";
-$password = "";
-
-// Create a PDO connection (you could use mysqli as well).
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = Database::getConnection();
 } catch (Exception $e) {
     die("Database connection failed: " . $e->getMessage());
 }
@@ -42,7 +31,6 @@ try {
 // 4. Detect Query Parameters
 //    - Check for ?ids=1,2,3
 //    - Check for ?plate=ABC123
-//    - If both exist, IDs take precedence (change logic if needed).
 // --------------------------------------------------
 $idsParam   = isset($_GET['ids'])   ? trim($_GET['ids'])   : '';
 $plateParam = isset($_GET['plate']) ? trim($_GET['plate']) : '';
@@ -53,8 +41,6 @@ if (empty($idsParam) && empty($plateParam)) {
 
 // --------------------------------------------------
 // 5. Build and Execute the Query
-//    - If we have `ids`, use them in an IN-clause.
-//    - Else if we have `plate`, select by plate.
 // --------------------------------------------------
 $records = array();
 
@@ -66,55 +52,64 @@ if (!empty($idsParam)) {
     }
     
     $placeholders = rtrim(str_repeat('?,', count($idsArray)), ',');
-    $sql  = "SELECT id, plate, uploadFile, phototime
-             FROM parking_records
-             WHERE id IN ($placeholders) order by phototime desc";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($idsArray);
-    $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $sql = "SELECT id, plate, uploadFile, phototime
+            FROM parking_records
+            WHERE id IN ($placeholders) ORDER BY phototime DESC";
+    $stmt = $conn->prepare($sql);
+    $types = str_repeat('i', count($idsArray));
+    $stmt->bind_param($types, ...$idsArray);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $records = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
 
 } elseif (!empty($plateParam)) {
     // 5b. Handle single plate
-    $sql  = "SELECT id, plate, uploadFile, phototime
-             FROM parking_records
-             WHERE plate = :plate  order by phototime desc";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(array(':plate' => $plateParam));
-    $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $sql = "SELECT id, plate, uploadFile, phototime
+            FROM parking_records
+            WHERE plate = ? ORDER BY phototime DESC";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('s', $plateParam);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $records = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
 }
 
 // If no records found
-if (!$records) {
+if (empty($records)) {
     die("No records found for the given parameter(s).");
 }
 
 // --------------------------------------------------
 // 6. Prepare Data for the PDF
-//    - For each record, build array with 'file' and 'tagline'.
-//    - Convert phototime to Australia/Sydney if available.
 // --------------------------------------------------
 $photos = array();
 
 foreach ($records as $row) {
-    $imagePath = $row['uploadFile']; // e.g. stored path to the JPG
+    $imagePath = $row['uploadFile'];
     if (!file_exists($imagePath)) {
-        // Could skip or handle differently if file doesn't exist
         continue;
     }
 
     // Convert phototime from UTC to Australia/Sydney
     $convertedTime = 'No time found';
     if (!empty($row['phototime'])) {
-        $dateUtc = new DateTime($row['phototime'], new DateTimeZone('UTC'));
-        $dateUtc->setTimezone(new DateTimeZone('Australia/Sydney'));
-        $convertedTime = $dateUtc->format('Y-m-d H:i:s');
+        try {
+            $dateUtc = new DateTime($row['phototime'], new DateTimeZone('UTC'));
+            $dateUtc->setTimezone(new DateTimeZone('Australia/Sydney'));
+            $convertedTime = $dateUtc->format('Y-m-d H:i:s');
+        } catch (Exception $e) {
+            // Handle potential DateTime errors gracefully
+            $convertedTime = 'Invalid time format';
+        }
     }
 
     // Tagline includes plate + phototime
     $tagLine = $row['plate'] . ' - ' . $convertedTime;
 
     $photos[] = array(
-        'file'    => $imagePath,
+        'file' => $imagePath,
         'tagline' => $tagLine,
         'plate' => $row['plate']
     );
@@ -127,8 +122,7 @@ if (empty($photos)) {
 // --------------------------------------------------
 // 7. Define a PDF Class for 4 Images per Page
 // --------------------------------------------------
-class FourUpPDF extends FPDF
-{
+class FourUpPDF extends FPDF {
     private $imagesPerPage = 4;  // 2×2
     // Coordinates (x,y) for the 4 image slots on an A4 page (portrait)
     private $slots = array(
@@ -138,17 +132,15 @@ class FourUpPDF extends FPDF
         array('x' => 110, 'y' => 150),
     );
     // Max width/height
-    private $maxImageWidth  = 90;
+    private $maxImageWidth = 90;
     private $maxImageHeight = 90;
 
-    public function __construct()
-    {
+    public function __construct() {
         parent::__construct('P', 'mm', 'A4');
         $this->SetMargins(10, 10, 10);
     }
 
-    public function createPdf(array $photos)
-    {
+    public function createPdf(array $photos) {
         $slotIndex = 0;
 
         foreach ($photos as $photo) {
@@ -160,21 +152,20 @@ class FourUpPDF extends FPDF
             $y = $this->slots[$slotIndex]['y'];
 
             $imagePath = $photo['file'];
-            $tagLine   = $photo['tagline'];
+            $tagLine = $photo['tagline'];
 
             $imgSize = @getimagesize($imagePath);
             if ($imgSize === false) {
-                // skip if invalid image
                 continue;
             }
             list($imgWidth, $imgHeight) = $imgSize;
 
             // Scale to fit
-            $widthRatio  = $this->maxImageWidth  / $imgWidth;
+            $widthRatio = $this->maxImageWidth / $imgWidth;
             $heightRatio = $this->maxImageHeight / $imgHeight;
-            $scale       = min($widthRatio, $heightRatio);
+            $scale = min($widthRatio, $heightRatio);
 
-            $finalWidth  = $imgWidth  * $scale;
+            $finalWidth = $imgWidth * $scale;
             $finalHeight = $imgHeight * $scale;
 
             // Center image within the slot's max width
@@ -188,11 +179,11 @@ class FourUpPDF extends FPDF
             $tagY = $yImage + $finalHeight + 5;
             $this->SetXY($x, $tagY);
             $this->Cell(
-                $this->maxImageWidth, 
-                8, 
-                $tagLine, 
-                0, 
-                0, 
+                $this->maxImageWidth,
+                8,
+                $tagLine,
+                0,
+                0,
                 'C'
             );
 

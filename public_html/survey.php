@@ -26,19 +26,7 @@ function generate_placeholder_svg($text, $color) {
     return "data:image/svg+xml;base64," . base64_encode($svg);
 }
 
-// Add to database 
-// Create a connection to MySQL
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "parking";
-
-$conn = new mysqli($host, $user, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+$conn = Database::getConnection();
 
 // SQL to create table if it does not exist
 
@@ -86,7 +74,7 @@ if ($result->num_rows > 0) {
         echo '<div class="offence">';
         echo $link_start . "<img src='" . $imageSrc . "' alt='Photo'>" . $link_end;
         echo "<div class=\"timestamp\">". htmlspecialchars($formattedPhototime)  . 
-             //"<br><a href=\"api3.php?id="  . htmlspecialchars($row['id']) . "\">Reprocess " . $row['id'] . "</a>" .
+             //"<br><a href=\"api_survey.php?id="  . htmlspecialchars($row['id']) . "\">Reprocess " . $row['id'] . "</a>" .
              '<div style="height:2em">' . $row['id'] . '-' . htmlspecialchars($row['unitnumber']) . '/'  . htmlspecialchars($row['plate'])  .'</div>' . 
 
             "</div>";
@@ -99,7 +87,7 @@ if ($result->num_rows > 0) {
 }
 
 
-$conn->close();
+Database::close();
 
 ?>
 </body>

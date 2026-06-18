@@ -42,18 +42,7 @@ if (isset($_GET['days']) && is_numeric($_GET['days'])) {
     $days = 3; // Default value
 }
 
-// Create a connection to MySQL (existing code)
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "parking";
-
-$conn = new mysqli($host, $user, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+$conn = Database::getConnection();
 
 /**
  * Returns an array with local (Australia/Sydney) and UTC timestamps.
@@ -677,6 +666,8 @@ $sql = "SELECT * from ($sql) al3 where days >= $days or `M286` = 'Violated'  ord
                      "&issued=" + isIssued;
         xhr.send(params);
     }
+
+    <?php Database::close(); ?>
 </script>
 </body>
 </html>

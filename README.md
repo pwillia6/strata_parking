@@ -42,7 +42,7 @@ This application is a comprehensive tool for managing and enforcing parking regu
     - The PWA automatically attempts to upload pending photos when an internet connection is stable, or the operator can trigger a manual upload.
 
 2.  **Process (Backend APIs - `api2.php`, `api3.php`, `api4.php`)**:
-    - The backend API receives the photo and its metadata.
+    - The backend API (`api_visitor.php`, `api_survey.php`, `api_notice.php`) receives the photo and its metadata.
     - It sends the image to the OpenAI API to extract the license plate and other relevant details based on the capture mode.
     - The photo is saved to the server in the `/var/uploads/` or `/var/survey/` directory.
     - The extracted data and file path are stored in the appropriate MySQL table (`parking_records`, `survey`, or `notice`).
@@ -108,7 +108,7 @@ This application is a comprehensive tool for managing and enforcing parking regu
 - `/public_html/`: The web root containing all user-facing PHP scripts and the PWA.
 - `/public_html/index.html`: The entry point for the mobile PWA.
 - `/public_html/offend.php`: The main entry point for the admin dashboard.
-- `/public_html/api{2,3,4}.php`: API endpoints for handling photo uploads.
+- `/public_html/api_*.php`: API endpoints for handling photo uploads (`api_visitor.php`, `api_survey.php`, `api_notice.php`).
 - `/public_html/nav.php`: The shared navigation menu for the admin dashboard.
 - `/lib/`: Contains shared PHP libraries and configuration.
 - `/lib/config.php`: Stores all secrets and configuration variables.
