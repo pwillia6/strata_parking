@@ -87,40 +87,93 @@ if (isset($_GET['offset']) && is_numeric($_GET['offset'])) {
 extract(getLastFullWeekRange($offset));
 
 if (!isset($_GET['id'])) {
-$sql = "SELECT distinct * FROM (
-    SELECT id, uploadFile, group_concat(ids) as ids, plate, count(1) as days, date('$localStart') as datefrom, date('$localEnd') as dateto, count(1) -  sum(containsnumber)  as `M284`, 
-                      count(1)>2 as NoLongerVisitor, 
-                      sum(nophotos) -  sum(containsnumber) as `M281`, sum(containscar) as `M283`, sum(containsnumber) as `M287`, sum(allphotos) as allphotos, max(lastphoto) as lastphoto,
-                      group_concat(firstphoto order by firstphoto) as firstphotos from (
-        SELECT max(id) as id, uploadFile, group_concat(id) as ids, plate, count(1) as nophotos,
-               min(convert_tz(phototime,'+00:00', 'Australia/Sydney')) as firstphoto, 
-               max(convert_tz(phototime,'+00:00', 'Australia/Sydney')) as lastphoto, 
-               date(convert_tz(phototime,'+00:00', 'Australia/Sydney')) as photodate, 
-               count(1) as allphotos, 
-               count(if (containscar = 'Yes', 'YES', null)) as containscar, 
-               count(if (containsnumber = 'Yes', 'YES', null)) as containsnumber 
-          FROM parking_records 
-         WHERE phototime BETWEEN  '$utcStart' and '$utcEnd'  
-         GROUP BY plate, photodate
-) al GROUP BY plate
-) al2";
-
-$sql = "
-        SELECT s.plate as SurveyPlate, s.uploadFile as surveyUploadFile, s.unitnumber as SurveyUnitNumber, pr.* FROM (
-        $sql 
-        ) pr LEFT JOIN survey s on pr.plate=s.plate group by pr.plate";
-
-$sql = "
-        SELECT if (v.unitnumber is not null, v.unitnumber, al.SurveyUnitNumber) as unitnumber, al.* from (
-            $sql
-        ) al LEFT JOIN vehicles v on al.plate=v.plate";
-
-$sql = "SELECT IF(NoLongerVisitor OR (al2.unitnumber IS NOT NULL AND al2.unitnumber REGEXP '^[0-9]+$'), 'Violated', '') as `M286`, al2.* from (
-            $sql
-        ) al2";
-
-$sql = "SELECT * from ($sql) al3 where days >= $days or `M286` = 'Violated'  order by lastphoto desc;";
-
+    $sql = <<<SQL
+SELECT
+    *
+FROM (
+    SELECT
+        -- Step 4: Add M286 violation flag
+        IF(
+            with_unit_number.NoLongerVisitor OR (with_unit_number.unitnumber IS NOT NULL AND with_unit_number.unitnumber REGEXP '^[0-9]+$'),
+            'Violated',
+            ''
+        ) AS M286,
+        with_unit_number.*
+    FROM (
+        SELECT
+            -- Step 3: Determine final unit number, preferring 'vehicles' table
+            COALESCE(v.unitnumber, with_survey.SurveyUnitNumber) AS unitnumber,
+            with_survey.*
+        FROM (
+            SELECT
+                -- Step 2: Join with 'survey' to get a potential unit number
+                s.plate AS SurveyPlate,
+                s.uploadFile AS surveyUploadFile,
+                s.unitnumber AS SurveyUnitNumber,
+                weekly_summary.*
+            FROM (
+                -- Step 1: Aggregate daily records into a weekly summary for each plate
+                SELECT
+                    plate,
+                    GROUP_CONCAT(ids) AS ids,
+                    MAX(id) AS id,
+                    -- This is non-deterministic, but matches original logic
+                    MAX(uploadFile) AS uploadFile,
+                    COUNT(1) AS days,
+                    DATE('$localStart') AS datefrom,
+                    DATE('$localEnd') AS dateto,
+                    -- M284: Days in visitor parking (days seen minus days in resident spot)
+                    (COUNT(1) - SUM(is_resident_spot)) AS M284,
+                    -- NoLongerVisitor: Flag if seen more than 2 days
+                    (COUNT(1) > 2) AS NoLongerVisitor,
+                    -- M281: Observations (total photos minus photos in resident spot)
+                    (SUM(nophotos) - SUM(is_resident_spot)) AS M281,
+                    -- M283: Times seen in a shared car spot
+                    SUM(is_shared_car_spot) AS M283,
+                    -- M287: Times seen in a resident spot
+                    SUM(is_resident_spot) AS M287,
+                    SUM(allphotos) AS allphotos,
+                    MAX(lastphoto) AS lastphoto,
+                    GROUP_CONCAT(firstphoto ORDER BY firstphoto) AS firstphotos
+                FROM (
+                    -- Step 0: Group records by plate and day to get daily summaries
+                    SELECT
+                        plate,
+                        DATE(CONVERT_TZ(phototime, '+00:00', 'Australia/Sydney')) AS photodate,
+                        MAX(id) AS id,
+                        MAX(uploadFile) AS uploadFile,
+                        GROUP_CONCAT(id) AS ids,
+                        COUNT(1) AS nophotos,
+                        MIN(CONVERT_TZ(phototime, '+00:00', 'Australia/Sydney')) AS firstphoto,
+                        MAX(CONVERT_TZ(phototime, '+00:00', 'Australia/Sydney')) AS lastphoto,
+                        COUNT(1) AS allphotos,
+                        SUM(IF(containscar = 'Yes', 1, 0)) AS is_shared_car_spot,
+                        SUM(IF(containsnumber = 'Yes', 1, 0)) AS is_resident_spot
+                    FROM
+                        parking_records
+                    WHERE
+                        phototime BETWEEN '$utcStart' AND '$utcEnd'
+                    GROUP BY
+                        plate,
+                        photodate
+                ) AS daily_records
+                GROUP BY
+                    plate
+            ) AS weekly_summary
+            LEFT JOIN survey s ON weekly_summary.plate = s.plate
+            -- This GROUP BY is to ensure one row per plate after the join, matching original logic
+            GROUP BY
+                weekly_summary.plate
+        ) AS with_survey
+        LEFT JOIN vehicles v ON with_survey.plate = v.plate
+    ) AS with_unit_number
+) AS final_results
+WHERE
+    -- Step 5: Final filtering
+    final_results.days >= $days OR final_results.M286 = 'Violated'
+ORDER BY
+    final_results.lastphoto DESC;
+SQL;
 
     $stmt = $conn->prepare($sql);
     $stmt->execute();
