@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Handles file-related operations, such as saving uploaded photos
+ * and extracting request data.
+ */
 class FileHandler {
     /**
      * Saves an uploaded file to a specified directory.
@@ -42,7 +46,7 @@ class FileHandler {
      * Extracts and validates required data from the POST/FILES superglobals for an upload request.
      *
      * @param string $destinationDir The target directory for the upload.
-     * @return array An associative array with 'imagePath', 'originalName', 'phototime', 'uuid', and 'uploadDir'.
+     * @return object An object with 'imagePath', 'originalName', 'phototime', 'uuid', and 'uploadDir'.
      * @throws Exception If required data is missing.
      */
     public static function getRequestDataForUpload($destinationDir) {

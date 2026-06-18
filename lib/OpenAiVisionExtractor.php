@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * A utility class to interact with the OpenAI Vision API.
+ * It handles API calls, response parsing, and semaphore locking.
+ */
 class OpenAiVisionExtractor {
 
     /**
