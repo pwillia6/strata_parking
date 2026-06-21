@@ -76,6 +76,12 @@ class Database {
      * @throws Exception
      */
     public static function insertParkingRecord($plate, $containscar, $containsvisitor, $containsnumber, $result, $uploadFile, $phototime, $checksum, $uuid) {
+
+        if ($plate === null) {
+            // DB Will not accept record
+            return;
+        } 
+
         $sql = "INSERT INTO parking_records (plate, containscar, containsvisitor, containsnumber, result, uploadFile, phototime, `checksum`, `uuid`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = self::executeQuery($sql, [$plate, $containscar, $containsvisitor, $containsnumber, $result, $uploadFile, $phototime, $checksum, $uuid], "sssssssss");
         $stmt->close();
@@ -146,6 +152,11 @@ class Database {
      * @throws Exception
      */
     public static function insertSurveyRecord($plate, $unit_number, $result, $uploadFile, $phototime, $checksum, $uuid) {
+        if ($plate === null) {
+            // DB Will not accept record
+            return;
+        } 
+
         $sql = "INSERT INTO survey (plate, unitnumber, result, uploadFile, phototime, `checksum`, `uuid`) VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt = self::executeQuery($sql, [$plate, $unit_number, $result, $uploadFile, $phototime, $checksum, $uuid], "sssssss");
         $stmt->close();
@@ -214,6 +225,11 @@ class Database {
      * @throws Exception
      */
     public static function insertNoticeRecord($plate, $noticepinned, $result, $uploadFile, $phototime, $checksum, $uuid) {
+        if ($plate === null) {
+            // DB Will not accept record
+            return;
+        } 
+
         $sql = "INSERT INTO notice (plate, noticepinned, result, uploadFile, phototime, `checksum`, `uuid`) VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt = self::executeQuery($sql, [$plate, $noticepinned, $result, $uploadFile, $phototime, $checksum, $uuid], "sssssss");
         $stmt->close();

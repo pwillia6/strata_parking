@@ -21,8 +21,11 @@ try {
 
         $info = OpenAiVisionExtractor::extractDataFromImage($imagePath, $prompt);
         $plate = $info->plate;
-
-        Database::updateSurveyRecord($id, $info->plate, $info->unit_number, $info->raw_result, $info->checksum);
+        if ($plate === null) {
+            // DB Will not accept record
+        } else {
+            Database::updateSurveyRecord($id, $info->plate, $info->unit_number, $info->raw_result, $info->checksum);
+        }
         echo "<h2>" . htmlspecialchars($info->raw_result) . "</h2>";
     } else {
         die("Error: Invalid request.");

@@ -85,20 +85,21 @@ class OpenAiVisionExtractor {
             curl_close($ch);
 
             $result = json_decode($response, true);
-            if (!isset($result['choices'][0]['message']['content'])) {
-                throw new Exception("Unable to extract data from API response.");
+
+            $info = null;
+            $jsonContent = null;
+            $cleanedJson = null;
+
+            // Check if content is present and attempt to decode it
+            if (isset($result['choices'][0]['message']['content']) && !empty(trim($result['choices'][0]['message']['content']))) {
+                $jsonContent = $result['choices'][0]['message']['content'];
+                $cleanedJson = self::removeLinesStartingWithBackticks($jsonContent);
+                $info = json_decode($cleanedJson);
             }
 
-            $jsonContent = $result['choices'][0]['message']['content'];
-            $cleanedJson = self::removeLinesStartingWithBackticks($jsonContent);
-            $info = json_decode($cleanedJson);
-
-            if ($info === null) {
-                throw new Exception("Failed to decode JSON from API response: " . $cleanedJson);
-            }
-
+            // If we reach here, $info is a valid object from the decoded JSON.
             // Attach additional useful data
-            $info->raw_result = $jsonContent;
+            $info->raw_result = $cleanedJson;
             $info->checksum = self::fileChecksum($fileContent);
 
             return $info;
