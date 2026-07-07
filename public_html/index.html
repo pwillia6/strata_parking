@@ -70,13 +70,6 @@
             background-color: #ffffff;
             color: #000000;
         }
-        #connection-status {
-            font-size: 14px;
-            font-weight: bold;
-            margin-left: 8px;
-            white-space: nowrap;
-        }
-
         #overlay {
             position: absolute;
             top: 50%;
@@ -142,7 +135,6 @@
                 <option value="api_notice.php">Notice</option>
             </select>
             <button id="upload-button">Upload (0)</button>
-            <span id="connection-status"></span>
         </div>
 
         <canvas id="canvas"></canvas>
@@ -214,11 +206,6 @@
                          appendToLog(`<strong>Version:</strong> ${event.data.version}`);
                     }
                 }
-                if (event.data && event.data.action === 'UPLOADS_CHANGED') {
-                    // A background sync in the service worker uploaded/claimed photos
-                    // while this page was open; refresh our view of the queue.
-                    updateUploadButton();
-                }
             });
 
             navigator.serviceWorker.register('/sw.js').then(registration => {
@@ -245,15 +232,7 @@
 
         let isUploading = false;
         let pendingUploadsCount = 0; // Sync counter for beforeunload
-        let successfulPings = 0;
-        let pingIntervalId = null;
-        // Only 1 successful ping is required before attempting an upload. The ping merely
-        // confirms the server is actually reachable (not just that the OS reports a network
-        // interface as "online"); uploadPhotoWithRetry() already has its own retry/backoff
-        // for handling a flaky connection during the real upload.
-        const REQUIRED_SUCCESSFUL_PINGS = 1;
-        // A row can be "claimed" (by this page or by the service worker's background sync)
-        // so the other one doesn't upload the same photo at the same time.
+        // A row can be "claimed" so a concurrent upload attempt doesn't grab the same photo twice.
         const CLAIM_STALE_MS = 2 * 60 * 1000; // treat an abandoned claim as free after 2 minutes
 
         async function claimUpload(id) {
@@ -269,61 +248,6 @@
         async function releaseClaim(id) {
             await db.pending_uploads.update(id, { claimed: null });
         }
-
-        async function registerBackgroundSync() {
-            if (!('serviceWorker' in navigator) || !('SyncManager' in window)) {
-                return; // e.g. iOS Safari - no Background Sync support, foreground path still works
-            }
-            try {
-                const registration = await navigator.serviceWorker.ready;
-                await registration.sync.register('upload-photos');
-            } catch (err) {
-                console.log('Background sync registration failed:', err);
-            }
-        }
-
-        function updateConnectionStatusUI() {
-            if (navigator.onLine) {
-                connectionStatus.textContent = '● Online';
-                connectionStatus.style.color = '#b6f2c1';
-            } else {
-                connectionStatus.textContent = '● Offline';
-                connectionStatus.style.color = '#f8b6b6';
-            }
-        }
-
-        // The browser's online/offline events fire the moment the network interface
-        // changes state, and visibilitychange fires the moment the app is foregrounded
-        // again - both are far faster signals than waiting for the next 60s ping tick.
-        function handleReconnectSignal() {
-            updateConnectionStatusUI();
-            if (pendingUploadsCount === 0 || isUploading) return;
-
-            if (pingIntervalId === null) {
-                startPinging();
-            } else {
-                pingServer(); // already polling; force an immediate check now
-            }
-        }
-
-        window.addEventListener('online', () => {
-            console.log('Browser reports online.');
-            handleReconnectSignal();
-        });
-
-        window.addEventListener('offline', () => {
-            console.log('Browser reports offline.');
-            updateConnectionStatusUI();
-            stopPinging();
-            updateActivity('Offline. Will resume automatically when connection returns.');
-        });
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                handleReconnectSignal();
-            }
-        });
-
 
         window.addEventListener('beforeunload', (event) => {
             if (pendingUploadsCount > 0 && !isUploading) {
@@ -342,7 +266,6 @@
         const log = document.getElementById('log');
         const overlay = document.getElementById('overlay');
         const uploadButton = document.getElementById('upload-button');
-        const connectionStatus = document.getElementById('connection-status');
 
         // --- UUID Management ---
         function generateUUID() { // Public Domain/MIT
@@ -389,57 +312,6 @@
                 });
         });
 
-        function startPinging() {
-            if (pingIntervalId === null && pendingUploadsCount > 0 && !isUploading) {
-                console.log("Starting ping mechanism.");
-                updateActivity('Checking connection before uploading...');
-                pingServer(); // Ping immediately, then set interval
-                pingIntervalId = setInterval(pingServer, 60000); // every minute
-            }
-        }
-
-        function stopPinging() {
-            if (pingIntervalId !== null) {
-                console.log("Stopping ping mechanism.");
-                clearInterval(pingIntervalId);
-                pingIntervalId = null;
-                successfulPings = 0;
-            }
-        }
-
-        async function pingServer() {
-            // Don't ping if already uploading or if there's nothing to upload.
-            if (isUploading || pendingUploadsCount === 0) { 
-                stopPinging();
-                return;
-            }
-            try {
-                const response = await fetch('api_visitor.php?ping=1');
-                if (response.ok && await response.text() === 'pong') {
-                    successfulPings++;
-                    console.log(`Successful ping #${successfulPings}`);
-                    if (successfulPings >= REQUIRED_SUCCESSFUL_PINGS) {
-                        console.log("Server reachable. Triggering auto-upload.");
-                        stopPinging(); // Stop pinging once we start uploading
-                        performUpload();
-                    } else {
-                        updateActivity(`Connection stable. Confirming (${successfulPings}/${REQUIRED_SUCCESSFUL_PINGS})...`);
-                    }
-                } else {
-                    throw new Error('Ping failed or invalid response.');
-                }
-            } catch (error) {
-                console.error("Ping failed:", error.message);
-                updateActivity("Connection unavailable. Retrying...");
-                successfulPings = 0; // Reset on failure
-            }
-            if (isUploading || pendingUploadsCount === 0) { 
-                stopPinging();
-                return;
-            }
-
-        }
-
         async function updateUploadButton() {
             try {
                 pendingUploadsCount = await db.pending_uploads.count();
@@ -448,13 +320,6 @@
                     uploadButton.style.backgroundColor = '#dc3545'; // Red
                 } else {
                     uploadButton.style.backgroundColor = '#28a745'; // Green
-                }
-
-                if (pendingUploadsCount > 0 && !isUploading) {
-                    startPinging();
-                    registerBackgroundSync();
-                } else {
-                    stopPinging();
                 }
             } catch (error) {
                 console.error("Failed to update upload button count:", error);
@@ -477,8 +342,7 @@
 
                 const apiEndpoint = document.getElementById('apiSelect').value;
 
-                // Add to IndexedDB (uuid is stored per-row so a background sync,
-                // which has no access to this page's localStorage, can still upload it)
+                // Add to IndexedDB
                 await db.pending_uploads.add({
                     photoBlob: photoBlob,
                     phototime: phototime,
@@ -488,7 +352,6 @@
 
                 pendingUploadsCount++; // Increment sync counter
                 updateUploadButton(); // Update UI
-                registerBackgroundSync(); // let the SW pick this up even if the app gets closed
 
                 overlay.style.display = 'block';
                 clickSound.play();
@@ -539,12 +402,8 @@
             performUpload();
         });
 
-        // Shared by the manual button click, the ping-ladder auto-trigger, and the
-        // online/visibilitychange reconnect handlers.
         async function performUpload() {
             if (pendingUploadsCount === 0 || isUploading) return;
-
-            stopPinging();
 
             isUploading = true;
             uploadButton.disabled = true;
@@ -555,7 +414,6 @@
             const uploadsToProcess = await db.pending_uploads.toArray();
 
             for (const upload of uploadsToProcess) {
-                // Claim the row so a concurrent background sync can't upload it too.
                 const claimed = await claimUpload(upload.id);
                 if (!claimed) continue; // already claimed/handled elsewhere
 
@@ -585,12 +443,6 @@
             isUploading = false;
             uploadButton.disabled = false;
             updateUploadButton();
-
-            // If there are still pending uploads after trying, restart the pinging process.
-            if (pendingUploadsCount > 0) {
-                startPinging();
-                registerBackgroundSync();
-            }
         }
 
         async function uploadPhotoWithRetry(formData, apiEndpoint) {
@@ -649,7 +501,6 @@
 
         // Initial button state
         updateUploadButton();
-        updateConnectionStatusUI();
 
         // Log the UUID
         appendToLog(`\n<strong>UUID:</strong> ${userUUID}`);
