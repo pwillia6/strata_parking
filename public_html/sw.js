@@ -1,6 +1,6 @@
 
-const VERSION = '3.1';
-const CACHE_NAME = 'parking-app-cache-v3';
+const VERSION = '3.2';
+const CACHE_NAME = 'parking-app-cache-v4';
 
 const urlsToCache = [
   '/',

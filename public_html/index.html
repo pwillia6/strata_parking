@@ -70,6 +70,12 @@
             background-color: #ffffff;
             color: #000000;
         }
+        #connection-status {
+            font-size: 14px;
+            font-weight: bold;
+            margin-left: 8px;
+            white-space: nowrap;
+        }
         #overlay {
             position: absolute;
             top: 50%;
@@ -135,6 +141,7 @@
                 <option value="api_notice.php">Notice</option>
             </select>
             <button id="upload-button">Upload (0)</button>
+            <span id="connection-status"></span>
         </div>
 
         <canvas id="canvas"></canvas>
@@ -266,6 +273,21 @@
         const log = document.getElementById('log');
         const overlay = document.getElementById('overlay');
         const uploadButton = document.getElementById('upload-button');
+        const connectionStatus = document.getElementById('connection-status');
+
+        // Purely informational - does not affect uploads, which only run on button click.
+        function updateConnectionStatusUI() {
+            if (navigator.onLine) {
+                connectionStatus.textContent = '● Online';
+                connectionStatus.style.color = '#b6f2c1';
+            } else {
+                connectionStatus.textContent = '● Offline';
+                connectionStatus.style.color = '#f8b6b6';
+            }
+        }
+
+        window.addEventListener('online', updateConnectionStatusUI);
+        window.addEventListener('offline', updateConnectionStatusUI);
 
         // --- UUID Management ---
         function generateUUID() { // Public Domain/MIT
@@ -402,39 +424,57 @@
             performUpload();
         });
 
+        // Checks connectivity every 5s and clicks Upload if online and there's something
+        // pending. setInterval's first tick fires after the delay, so this never clicks
+        // immediately on load - only after being online for a full 5s tick.
+        setInterval(() => {
+            if (navigator.onLine && pendingUploadsCount > 0 && !isUploading) {
+                uploadButton.click();
+            }
+        }, 5000);
+
         async function performUpload() {
             if (pendingUploadsCount === 0 || isUploading) return;
 
             isUploading = true;
             uploadButton.disabled = true;
-            const totalToUpload = pendingUploadsCount;
             let uploadedCount = 0;
+            const processedIds = new Set();
 
-            // Fetch all pending uploads into a static array before iterating
-            const uploadsToProcess = await db.pending_uploads.toArray();
+            // Loop instead of taking one static snapshot: a photo captured mid-run
+            // (e.g. while an earlier item is in its retry/backoff) would otherwise
+            // be excluded from this run and sit stuck until the next 5s check.
+            while (true) {
+                const uploadsToProcess = (await db.pending_uploads.toArray())
+                    .filter(upload => !processedIds.has(upload.id));
+                if (uploadsToProcess.length === 0) break;
 
-            for (const upload of uploadsToProcess) {
-                const claimed = await claimUpload(upload.id);
-                if (!claimed) continue; // already claimed/handled elsewhere
+                const totalToUpload = uploadedCount + uploadsToProcess.length;
 
-                uploadedCount++;
-                uploadButton.textContent = `Uploading ${uploadedCount}/${totalToUpload}...`;
+                for (const upload of uploadsToProcess) {
+                    processedIds.add(upload.id);
+                    const claimed = await claimUpload(upload.id);
+                    if (!claimed) continue; // already claimed/handled elsewhere
 
-                const formData = new FormData();
-                formData.append('photo', claimed.photoBlob, 'photo.jpg');
-                formData.append('phototime', claimed.phototime);
-                formData.append('uuid', claimed.uuid || userUUID);
+                    uploadedCount++;
+                    uploadButton.textContent = `Uploading ${uploadedCount}/${totalToUpload}...`;
 
-                const success = await uploadPhotoWithRetry(formData, claimed.api);
+                    const formData = new FormData();
+                    formData.append('photo', claimed.photoBlob, 'photo.jpg');
+                    formData.append('phototime', claimed.phototime);
+                    formData.append('uuid', claimed.uuid || userUUID);
 
-                if (success) {
-                    // Remove from IndexedDB on successful upload
-                    await db.pending_uploads.delete(claimed.id);
-                } else {
-                    await releaseClaim(claimed.id); // let a later attempt retry it
+                    const success = await uploadPhotoWithRetry(formData, claimed.api);
+
+                    if (success) {
+                        // Remove from IndexedDB on successful upload
+                        await db.pending_uploads.delete(claimed.id);
+                    } else {
+                        await releaseClaim(claimed.id); // let a later attempt retry it
+                    }
+                    pendingUploadsCount = await db.pending_uploads.count(); // Sync counter
+                    updateUploadButton(); // Update UI
                 }
-                pendingUploadsCount = await db.pending_uploads.count(); // Sync counter
-                updateUploadButton(); // Update UI
             }
 
             // Final UI update
@@ -499,8 +539,14 @@
             activity.textContent = message;
         }
 
-        // Initial button state
-        updateUploadButton();
+        // Release any claim left over from a previous page load (e.g. this page was
+        // reloaded mid-upload). Background sync was removed, so this page is the only
+        // writer - a claim still set at load time is orphaned, not a real concurrent
+        // upload, and would otherwise block that row for up to CLAIM_STALE_MS.
+        db.pending_uploads.toCollection().modify({ claimed: null }).then(() => {
+            updateUploadButton();
+        });
+        updateConnectionStatusUI();
 
         // Log the UUID
         appendToLog(`\n<strong>UUID:</strong> ${userUUID}`);
