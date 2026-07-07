@@ -1,6 +1,10 @@
 
-const VERSION = '2.5';
+const VERSION = '2.6';
 const CACHE_NAME = 'parking-app-cache-v2';
+
+// Dexie is needed here (not just in index.html) so background sync can read
+// the same IndexedDB queue while no page is open.
+importScripts('https://unpkg.com/dexie@3/dist/dexie.js');
 const urlsToCache = [
   '/',
   '/index.html',
@@ -75,5 +79,81 @@ self.addEventListener('message', event => {
     // The service worker responds to the client that sent the message
     // with its version number.
     event.source.postMessage({ version: VERSION });
+  }
+});
+
+// --- Background Sync ---
+// Lets pending photos upload even if the app/tab is closed or backgrounded,
+// as soon as the OS tells the browser connectivity is back. Registered from
+// index.html via `registration.sync.register('upload-photos')`.
+// Note: not supported on iOS Safari (no Background Sync API there) - those
+// devices fall back to the foreground online/ping logic in index.html.
+
+const SYNC_TAG = 'upload-photos';
+const CLAIM_STALE_MS = 2 * 60 * 1000; // matches index.html; treat an abandoned claim as free
+
+function getUploadsDb() {
+  const db = new Dexie('ParkingAppDatabase');
+  db.version(1).stores({ pending_uploads: '++id, phototime' });
+  return db;
+}
+
+// Same claim/release scheme as index.html, so the page and the service
+// worker never upload (and thus duplicate) the same queued photo at once.
+async function claimUpload(db, id) {
+  return db.transaction('rw', db.pending_uploads, async () => {
+    const row = await db.pending_uploads.get(id);
+    if (!row) return null;
+    if (row.claimed && (Date.now() - row.claimed) < CLAIM_STALE_MS) return null;
+    await db.pending_uploads.update(id, { claimed: Date.now() });
+    return row;
+  });
+}
+
+async function releaseClaim(db, id) {
+  await db.pending_uploads.update(id, { claimed: null });
+}
+
+async function syncPendingUploads() {
+  const db = getUploadsDb();
+  const rows = await db.pending_uploads.toArray();
+  let anyFailed = false;
+
+  for (const row of rows) {
+    const claimed = await claimUpload(db, row.id);
+    if (!claimed) continue; // being handled elsewhere (e.g. an open tab), or already gone
+
+    try {
+      const formData = new FormData();
+      formData.append('photo', claimed.photoBlob, 'photo.jpg');
+      formData.append('phototime', claimed.phototime);
+      formData.append('uuid', claimed.uuid || '');
+
+      const response = await fetch(claimed.api, { method: 'POST', body: formData });
+      if (!response.ok) {
+        throw new Error(`Server error ${response.status}`);
+      }
+      await db.pending_uploads.delete(claimed.id);
+    } catch (err) {
+      console.error('Background sync upload failed for photo', row.id, err);
+      await releaseClaim(db, row.id);
+      anyFailed = true;
+    }
+  }
+
+  // Tell any open pages to refresh their pending count / button state.
+  const clients = await self.clients.matchAll();
+  clients.forEach(client => client.postMessage({ action: 'UPLOADS_CHANGED' }));
+
+  if (anyFailed) {
+    // Throwing tells the browser this sync attempt failed so it reschedules
+    // the tag with its own backoff, instead of us reimplementing retry here.
+    throw new Error('One or more background uploads failed; will retry.');
+  }
+}
+
+self.addEventListener('sync', event => {
+  if (event.tag === SYNC_TAG) {
+    event.waitUntil(syncPendingUploads());
   }
 });
