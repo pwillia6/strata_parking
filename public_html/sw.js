@@ -1,17 +1,19 @@
 
-const VERSION = '3.0';
-const CACHE_NAME = 'parking-app-cache-v2';
+const VERSION = '3.1';
+const CACHE_NAME = 'parking-app-cache-v3';
 
 // Dexie is needed here (not just in index.html) so background sync can read
-// the same IndexedDB queue while no page is open.
-importScripts('https://unpkg.com/dexie@3/dist/dexie.js');
+// the same IndexedDB queue while no page is open. Vendored locally (not loaded
+// from unpkg) because Chrome disallows importScripts() on a redirected URL,
+// and unpkg's /dexie@3/... path always issues a redirect.
+importScripts('/dexie.js');
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
   '/click.mp3',
   '/bell.mp3',
-  'https://unpkg.com/dexie@3/dist/dexie.js'
+  '/dexie.js'
 ];
 
 self.addEventListener('install', event => {

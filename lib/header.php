@@ -18,11 +18,15 @@ spl_autoload_register(function ($className) {
 
     // API endpoints are exempt from login checks only for POST requests.
     // This allows unauthenticated photo uploads from the PWA.
-    // GET requests to the same endpoints (for reprocessing) will require a login.
+    // GET requests to the same endpoints (for reprocessing) will require a login,
+    // except the unauthenticated connectivity ping (?ping=1) the PWA polls before
+    // auto-uploading - that must work with no session, or the app can never detect
+    // it's back online.
     $scriptName = basename($_SERVER['SCRIPT_NAME']);
     $isApiPostRequest = preg_match('/^api_.*\.php$/', $scriptName) && $_SERVER['REQUEST_METHOD'] === 'POST';
+    $isPingRequest = preg_match('/^api_.*\.php$/', $scriptName) && isset($_GET['ping']);
 
-if (!$isApiPostRequest) {
+if (!$isApiPostRequest && !$isPingRequest) {
     include __DIR__ . '/login.php';
 }
 

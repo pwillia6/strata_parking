@@ -162,8 +162,8 @@
         <audio id="bell-sound" src="bell.mp3" preload="auto"></audio>
     </div>
     
-    <!-- Dexie.js for easier IndexedDB handling -->
-    <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
+    <!-- Dexie.js for easier IndexedDB handling (vendored locally, see sw.js) -->
+    <script src="dexie.js"></script>
     <script>
         let deferredPrompt;
         const installContainer = document.getElementById('install-container');
@@ -223,10 +223,13 @@
 
             navigator.serviceWorker.register('/sw.js').then(registration => {
                 console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                // If a service worker is already in control, request the version.
-                if (navigator.serviceWorker.controller) {
-                    requestVersionFromSW();
-                }
+                // navigator.serviceWorker.ready resolves once a worker is actually active
+                // for this page. That's a more reliable moment to ask for the version than
+                // checking .controller immediately after register() resolves, which can
+                // race with the browser finishing wiring up the controller - particularly
+                // right after an update swaps in a new worker.
+                navigator.serviceWorker.ready.then(() => requestVersionFromSW());
+
                 // Listen for a new service worker to take control and reload the page
                 // to ensure the latest assets are used.
                 let refreshing;
@@ -389,7 +392,7 @@
         function startPinging() {
             if (pingIntervalId === null && pendingUploadsCount > 0 && !isUploading) {
                 console.log("Starting ping mechanism.");
-                appendToLog("Connection unstable. Will attempt to auto-upload when stable.");
+                updateActivity('Checking connection before uploading...');
                 pingServer(); // Ping immediately, then set interval
                 pingIntervalId = setInterval(pingServer, 60000); // every minute
             }
