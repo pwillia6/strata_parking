@@ -1,5 +1,5 @@
 
-const VERSION = '2.6';
+const VERSION = '3.0';
 const CACHE_NAME = 'parking-app-cache-v2';
 
 // Dexie is needed here (not just in index.html) so background sync can read
