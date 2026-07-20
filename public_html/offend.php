@@ -4,19 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Parking - Weekly Offenders</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        /* Make the table header more compact */
-        #offenders th {
-            font-size: 0.8em; /* Reduce font size */
-            padding: 2px 4px;   /* Reduce vertical and horizontal padding */
-            text-align: center; /* Center-align header text */
-        }
-    </style>
+    <?php include 'tailwind-theme.php'; ?>
 </head>
 <body>
 
-<div class="container" style="text-align:left">
+<div class="container">
 
 <?php
 // PHP Version: 5.6
@@ -293,25 +285,27 @@ SQL;
     }
     // --- END NEW CODE BLOCK ---
     ?>
-    <button style="float:right; font-size:2em" type="button" id="printNoticesButton">Print Notices</button>
-    <h1>Weekly offenders: <form style="display:inline" method="GET">
-    <select  style="display:inline; font-size:1em" name="offset" onchange="this.form.submit()">
-        <? foreach ($weeks as $i => $week): ?>
-            <option <?=$i==$offset ? 'selected' : ''?> value="<?=$i?>"><?=$week['localRange']?></option>
-        <? endforeach ?>
-    </select>
-    <select  style="display:inline; font-size:1em" name="days" onchange="this.form.submit()">
-        <? for($i=1; $i<=7; $i++): ?>
-            <option <?=$i==$days ? 'selected' : ''?> value="<?=$i?>"><?=$i?> days</option>
-        <? endfor ?>
-    </select>
-</form>
-<span style="margin-left: 20px; font-size: 0.8em; font-weight: normal;">
-    <label>
-        <input type="checkbox" id="showViolationsOnlyCheckbox" style="width: auto; height: auto; vertical-align: middle;"> Show violations only
-    </label>
-</span>
-</h1>
+    <div class="flex items-center justify-between flex-wrap gap-3">
+        <h1 class="mb-0">Weekly Offenders</h1>
+        <button type="button" id="printNoticesButton" class="text-base">Print Notices</button>
+    </div>
+    <div class="flex items-center flex-wrap gap-4 mb-4">
+        <form class="flex items-center gap-2" method="GET">
+            <select name="offset" onchange="this.form.submit()">
+                <? foreach ($weeks as $i => $week): ?>
+                    <option <?=$i==$offset ? 'selected' : ''?> value="<?=$i?>"><?=$week['localRange']?></option>
+                <? endforeach ?>
+            </select>
+            <select name="days" onchange="this.form.submit()">
+                <? for($i=1; $i<=7; $i++): ?>
+                    <option <?=$i==$days ? 'selected' : ''?> value="<?=$i?>"><?=$i?> days</option>
+                <? endfor ?>
+            </select>
+        </form>
+        <label class="flex items-center gap-1.5 font-normal text-slate-600">
+            <input type="checkbox" id="showViolationsOnlyCheckbox"> Show violations only
+        </label>
+    </div>
     <div class="row">
     <?
     if (count($offender_rows) > 0) {
@@ -409,23 +403,25 @@ SQL;
             }
             echo "<td>{$display_phototime}{$recent_phototime_html}</td>
             <td>{$row['plate']}</td>
-            <td class=\"unitnumber\" style=\"text-wrap:none\" data-unitnumber=\"{$row['plate']}{$row['unitnumber']}\">"; ?>
-                    <input 
-                        type="hidden" 
-                        id="old_unitnumber_<?= $row['plate']; ?>" 
+            <td class=\"unitnumber\" data-unitnumber=\"{$row['plate']}{$row['unitnumber']}\">"; ?>
+                    <input
+                        type="hidden"
+                        id="old_unitnumber_<?= $row['plate']; ?>"
                         value="<?= htmlspecialchars($row['unitnumber']); ?>"
                     />
-
-                    <input style="width:50px"
-                        type="text"
-                        id="new_unitnumber_<?= $row['plate']; ?>" 
-                        value="<?= htmlspecialchars($row['unitnumber']); ?>"
-                        placeholder="Enter new unit number" 
-                    />
-                    <button type="button"  style="width:50px"
-                            onclick="updateUnitNumber('<?= $row['plate']; ?>')">
-                        Save
-                    </button>
+                    <div class="flex items-center justify-center gap-1.5">
+                        <input
+                            type="text"
+                            id="new_unitnumber_<?= $row['plate']; ?>"
+                            value="<?= htmlspecialchars($row['unitnumber']); ?>"
+                            placeholder="Unit #"
+                            class="w-16 text-center"
+                        />
+                        <button type="button" class="text-xs px-2 py-1"
+                                onclick="updateUnitNumber('<?= $row['plate']; ?>')">
+                            Save
+                        </button>
+                    </div>
                 </td>
             <?
             echo "

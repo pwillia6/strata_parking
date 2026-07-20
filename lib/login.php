@@ -26,63 +26,16 @@ if ($oauth === false) {
     <html lang="en">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>SP98937 Parking Application - Login</title>
-        <style>
-            body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-                margin: 0;
-            }
-            .login-container {
-                background-color: white;
-                padding: 40px;
-                border-radius: 10px;
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-                text-align: center;
-                width: 100%;
-                max-width: 400px;
-            }
-            .app-title {
-                font-size: 24px;
-                font-weight: 600;
-                color: #333;
-                margin-bottom: 10px;
-            }
-            .login-container h2 {
-                color: #555;
-                margin-bottom: 30px;
-                font-weight: 400;
-            }
-            .login-button {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 12px 20px;
-                margin: 10px 0;
-                color: white;
-                text-decoration: none;
-                border-radius: 5px;
-                font-weight: 500;
-                transition: background-color 0.3s ease;
-                border: none;
-                cursor: pointer;
-            }
-            .google { background-color: #DB4437; }
-            .google:hover { background-color: #C33D2E; }
-            .microsoft { background-color: #0078D4; }
-            .microsoft:hover { background-color: #005A9E; }
-        </style>
+        <link rel="stylesheet" href="tailwind.css">
     </head>
-    <body>
-        <div class="login-container">
-            <h1 class="app-title">SP98937 Parking Application</h1>
-            <h2>Please sign in</h2>
-            <a href="?provider=google" class="login-button google">Sign in with Google</a> 
-            <a href="?provider=microsoft" class="login-button microsoft">Sign in with Microsoft</a>
+    <body class="font-sans bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center min-h-screen m-0">
+        <div class="bg-white p-10 rounded-xl shadow-2xl text-center w-full max-w-sm">
+            <h1 class="text-2xl font-semibold text-slate-800 mb-2">SP98937 Parking Application</h1>
+            <h2 class="text-slate-500 font-normal mb-8">Please sign in</h2>
+            <a href="?provider=google" class="flex items-center justify-center px-5 py-3 my-2.5 text-white no-underline rounded-md font-medium transition-colors bg-[#DB4437] hover:bg-[#C33D2E]">Sign in with Google</a>
+            <a href="?provider=microsoft" class="flex items-center justify-center px-5 py-3 my-2.5 text-white no-underline rounded-md font-medium transition-colors bg-[#0078D4] hover:bg-[#005A9E]">Sign in with Microsoft</a>
         </div>
     </body>
     </html>

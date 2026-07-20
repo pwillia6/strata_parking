@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Parking - Manage Visitor Permissions</title>
-    <link rel="stylesheet" href="styles.css">
+    <?php include 'tailwind-theme.php'; ?>
 </head>
 <body>
 
-<div class="container" style="text-align:left">
+<div class="container">
 
 <?php
 include 'nav.php';
@@ -182,54 +182,55 @@ Database::close();
 
 <?php echo $message; ?>
 
-<form method="POST" action="manage_permissions.php">
-    <table style="width:auto;">
-        <tr>
-            <td><label for="plate">Plate Number:</label></td>
-            <td><input type="text" id="plate" name="plate" value="<?php echo $plate_value; ?>" required></td>
-        </tr>
-        <tr>
-            <td><label for="unitnumber">Unit Number:</label></td>
-            <td><input type="text" id="unitnumber" name="unitnumber" value="<?php echo $unitnumber_value; ?>"></td>
-        </tr>
-        <tr>
-            <td><label for="is_resident_vehicle">Vehicle is owned by resident:</label></td>
-            <td><input type="checkbox" id="is_resident_vehicle" name="is_resident_vehicle" <?php echo $is_resident_vehicle_value ? 'checked' : ''; ?>></td>
-        </tr>
-        <tr>
-            <td><label for="email">Email:</label></td>
-            <td><input type="email" id="email" name="email" value="<?php echo $email_value; ?>"></td>
-        </tr>
-        <tr>
-            <td><label for="visitor_permitted">Visitor Permitted:</label></td>
-            <td><input type="checkbox" id="visitor_permitted" name="visitor_permitted" <?php echo $is_permitted_value ? 'checked' : ''; ?>></td>
-        </tr>
-        <tr>
-            <td><label for="expiry_date">Expiry Date:</label></td>
-            <td><input type="date" id="expiry_date" name="expiry_date" value="<?php echo htmlspecialchars($expiry_date_value); ?>"></td>
-        </tr>
-        <tr>
-            <td colspan="2" style="text-align:center;">
-                <button type="submit" style="width:auto; padding: 10px 20px; font-size:1em; height: auto;">Update Permission</button>
-            </td>
-        </tr>
-    </table>
+<div class="bg-white rounded-lg shadow-sm p-5 max-w-xl">
+<form method="POST" action="manage_permissions.php" class="space-y-3">
+    <div class="flex items-center gap-3">
+        <label for="plate" class="w-48 shrink-0">Plate Number:</label>
+        <input type="text" id="plate" name="plate" value="<?php echo $plate_value; ?>" required class="flex-1">
+    </div>
+    <div class="flex items-center gap-3">
+        <label for="unitnumber" class="w-48 shrink-0">Unit Number:</label>
+        <input type="text" id="unitnumber" name="unitnumber" value="<?php echo $unitnumber_value; ?>" class="flex-1">
+    </div>
+    <div class="flex items-center gap-3">
+        <label for="is_resident_vehicle" class="w-48 shrink-0">Vehicle is owned by resident:</label>
+        <input type="checkbox" id="is_resident_vehicle" name="is_resident_vehicle" <?php echo $is_resident_vehicle_value ? 'checked' : ''; ?>>
+    </div>
+    <div class="flex items-center gap-3">
+        <label for="email" class="w-48 shrink-0">Email:</label>
+        <input type="email" id="email" name="email" value="<?php echo $email_value; ?>" class="flex-1">
+    </div>
+    <div class="flex items-center gap-3">
+        <label for="visitor_permitted" class="w-48 shrink-0">Visitor Permitted:</label>
+        <input type="checkbox" id="visitor_permitted" name="visitor_permitted" <?php echo $is_permitted_value ? 'checked' : ''; ?>>
+    </div>
+    <div class="flex items-center gap-3">
+        <label for="expiry_date" class="w-48 shrink-0">Expiry Date:</label>
+        <input type="date" id="expiry_date" name="expiry_date" value="<?php echo htmlspecialchars($expiry_date_value); ?>">
+    </div>
+    <div class="pt-2">
+        <button type="submit">Update Permission</button>
+    </div>
 </form>
+</div>
 
-<p><em>Enter a plate number to manage visitor parking permission. An empty expiry date means the permission does not expire.</em></p>
+<p class="text-sm text-slate-600 italic mt-4"><em>Enter a plate number to manage visitor parking permission. An empty expiry date means the permission does not expire.</em></p>
 
-<hr style="margin: 20px 0;">
+<hr class="my-5">
 
-<button type="button" id="sendPermitsButton" style="float:right; font-size:1.2em; margin-bottom: 10px; padding: 5px 10px; width:auto; height:auto;">Send Permits</button>
-
-<h2>
-    <?php echo $show_all ? 'All Permissions History' : 'Active Permissions'; ?>
-    <a href="manage_permissions.php?show=<?php echo $show_all ? 'active' : 'all'; ?>" style="float:right; font-size:0.8em; text-decoration:none;">
-        <button type="button" style="width:auto; padding: 5px 10px; font-size:1em; height: auto;">
-            <?php echo $show_all ? 'Show Active Only' : 'Show All History'; ?>
-        </button>
-    </a>
-</h2>
+<div class="flex items-center justify-between flex-wrap gap-3 mb-2">
+    <h2 class="mb-0">
+        <?php echo $show_all ? 'All Permissions History' : 'Active Permissions'; ?>
+    </h2>
+    <div class="flex items-center gap-2">
+        <a href="manage_permissions.php?show=<?php echo $show_all ? 'active' : 'all'; ?>" class="no-underline">
+            <button type="button" class="text-sm">
+                <?php echo $show_all ? 'Show Active Only' : 'Show All History'; ?>
+            </button>
+        </a>
+        <button type="button" id="sendPermitsButton">Send Permits</button>
+    </div>
+</div>
 
 <?php if (count($permissions) > 0): ?>
     <table border="1" style="width:100%;">
@@ -258,12 +259,12 @@ Database::close();
                     <td><?php echo htmlspecialchars($perm['email']); ?></td>
                     <td><?php echo htmlspecialchars($perm['visitor_permitted']); ?></td>
                     <td><?php echo htmlspecialchars($perm['expiry_date'] ? date('d-m-Y', strtotime($perm['expiry_date'])) : 'Never'); ?></td>
-                    <td style="text-align:center; white-space:nowrap;">
+                    <td class="text-center whitespace-nowrap">
                         <a href="manage_permissions.php?plate=<?php echo urlencode($perm['plate']); ?>">Edit</a>
                         &nbsp;|&nbsp;
-                        <form method="POST" action="manage_permissions.php" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete the permission for plate <?php echo htmlspecialchars($perm['plate']); ?>?');">
+                        <form method="POST" action="manage_permissions.php" class="inline" onsubmit="return confirm('Are you sure you want to delete the permission for plate <?php echo htmlspecialchars($perm['plate']); ?>?');">
                             <input type="hidden" name="delete_plate" value="<?php echo htmlspecialchars($perm['plate']); ?>">
-                            <button type="submit" style="background:none; border:none; color: #4e54c8; text-decoration:underline; cursor:pointer; padding:0; font-size:1em; width:auto; height:auto;">Delete</button>
+                            <button type="submit" class="bg-transparent border-0 text-brand underline p-0 hover:bg-transparent hover:text-brand-dark">Delete</button>
                         </form>
                     </td>
                 </tr>

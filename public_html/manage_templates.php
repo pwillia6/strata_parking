@@ -113,7 +113,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore_template'])) 
     exit();
 }
 
-include 'nav.php';
 $message = '';
 if (isset($_SESSION['template_message'])) {
     $message = $_SESSION['template_message'];
@@ -121,15 +120,25 @@ if (isset($_SESSION['template_message'])) {
 }
 
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Parking - Manage Templates</title>
+    <?php include 'tailwind-theme.php'; ?>
+</head>
+<body>
 
-<div class="container" style="text-align:left">
+<div class="container">
+<?php include 'nav.php'; ?>
     <h1>Manage Document Templates</h1>
 
     <?php echo $message; ?>
 
     <p>Here you can download the current templates or upload new versions. When you upload a new version, the old one will be automatically backed up.</p>
 
-    <table border="1" style="width:50%;">
+    <table class="md:w-2/3">
         <thead>
             <tr>
                 <th>Template Name</th>
@@ -140,17 +149,17 @@ if (isset($_SESSION['template_message'])) {
         <tbody>
             <?php foreach ($allowed_templates as $filename => $description): ?>
                 <tr>
-                    <td style="white-space: nowrap;"><strong><?php echo htmlspecialchars($filename); ?></strong></td>
-                    <td style="white-space: nowrap;"><?php echo htmlspecialchars($description); ?></td>
-                    <td style="width: 40%;">
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <td class="whitespace-nowrap"><strong><?php echo htmlspecialchars($filename); ?></strong></td>
+                    <td class="whitespace-nowrap"><?php echo htmlspecialchars($description); ?></td>
+                    <td class="w-2/5">
+                        <div class="flex items-center justify-between gap-3">
                             <a href="<?php echo htmlspecialchars($filename); ?>" download>
-                                <button type="button" style="width:auto; height: auto; padding: 5px 10px;">Download Current</button>
+                                <button type="button">Download Current</button>
                             </a>
-                            <form method="POST" enctype="multipart/form-data" style="margin-left: 15px; flex-grow: 1;">
+                            <form method="POST" enctype="multipart/form-data" class="flex-grow flex items-center gap-2">
                                 <input type="hidden" name="template_name" value="<?php echo htmlspecialchars($filename); ?>">
                                 <input type="file" name="new_template" required>
-                                <button type="submit" style="width:auto; height: auto; padding: 5px 10px;">Upload New</button>
+                                <button type="submit">Upload New</button>
                             </form>
                         </div>
                     </td>
@@ -164,18 +173,18 @@ if (isset($_SESSION['template_message'])) {
                     });
             ?>
                 <tr>
-                    <td colspan="3" style="padding-left: 30px; background-color: #f9f9f9;">
-                        <h4 style="margin-top: 10px; margin-bottom: 5px;">Available Backups:</h4>
-                        <ul style="list-style-type: none; padding-left: 0;">
+                    <td colspan="3" class="pl-8 bg-slate-50">
+                        <h4 class="mt-2 mb-1">Available Backups:</h4>
+                        <ul class="list-none pl-0">
                             <?php foreach ($backups as $backup_path):
                                 $backup_filename = basename($backup_path);
                             ?>
-                                <li style="margin-bottom: 5px; display: flex; justify-content: flex-start; align-items: center;">
-                                    <form method="POST" style="display:inline; margin:0; margin-right: 10px;">
+                                <li class="mb-1 flex items-center gap-2">
+                                    <form method="POST" class="inline m-0">
                                         <input type="hidden" name="restore_template" value="1">
                                         <input type="hidden" name="template_name" value="<?php echo htmlspecialchars($filename); ?>">
                                         <input type="hidden" name="backup_file" value="<?php echo htmlspecialchars($backup_filename); ?>">
-                                        <button type="submit" style="width:auto; height: auto; padding: 2px 8px; font-size: 0.9em;" onclick="return confirm('Are you sure you want to restore this version? The current live version will be backed up.');">Restore</button>
+                                        <button type="submit" class="text-xs px-2 py-1" onclick="return confirm('Are you sure you want to restore this version? The current live version will be backed up.');">Restore</button>
                                     </form>
                                     <span>
                                         <?php echo htmlspecialchars(basename($backup_filename, '.gitignore')); ?>

@@ -1,0 +1,108 @@
+/*
+ * Source file for the site's compiled Tailwind CSS.
+ * Rebuild after editing this file OR after adding/changing utility classes
+ * in any .php file covered by @source below:
+ *
+ *   ssh wserver "tailwindcss -i /home/www/parking.cweb.com.au/public_html/tailwind-src.css \
+ *     -o /home/www/parking.cweb.com.au/public_html/tailwind.css --minify"
+ *
+ * or simply: ./build-tailwind.sh (from the repo root)
+ */
+@import "tailwindcss" source(none);
+
+@source "./*.php";
+@source "../lib/*.php";
+
+@theme {
+  --color-brand: #4e54c8;
+  --color-brand-light: #8f94fb;
+  --color-brand-dark: #3a3f9e;
+}
+
+@layer base {
+  body { @apply bg-slate-100 text-slate-800 antialiased m-0; }
+  h1 { @apply text-2xl font-bold text-brand mb-4; }
+  h2 { @apply text-xl font-bold text-brand mb-3; }
+  h3 { @apply text-lg font-bold text-brand mb-2; }
+  h4 { @apply text-base font-bold text-brand mb-2; }
+  p { @apply mb-4; }
+  a { @apply text-brand hover:text-brand-dark; }
+  hr { @apply border-slate-200; }
+
+  table { @apply w-full border-collapse bg-white rounded-lg shadow-sm my-4 overflow-hidden text-sm; }
+  th { @apply bg-brand text-white text-left px-3 py-2.5 font-semibold; }
+  td { @apply border border-slate-200 px-3 py-2.5 align-middle; }
+  tbody tr:nth-child(even) { @apply bg-slate-50; }
+  tbody tr:hover { @apply bg-indigo-50; }
+
+  button, input[type="submit"] {
+    @apply bg-brand text-white px-4 py-2 rounded-md font-medium text-sm border-0 cursor-pointer transition-colors hover:bg-brand-dark;
+  }
+  button:disabled { @apply bg-slate-300 cursor-not-allowed; }
+
+  input[type="text"], input[type="date"], input[type="email"], input[type="number"],
+  input[type="file"], input[type="password"], select, textarea {
+    @apply border border-slate-300 rounded-md px-3 py-1.5 text-sm bg-white text-slate-800;
+  }
+  input[type="checkbox"], input[type="radio"] { @apply w-4 h-4 accent-brand align-middle; }
+  label { @apply text-sm; }
+}
+
+@layer components {
+  .container { @apply w-[95%] max-w-[1600px] mx-auto my-4; }
+
+  /* Shared nav bar (see nav.php) */
+  nav { @apply bg-gradient-to-r from-brand to-brand-light rounded-lg shadow-md mb-5 flex items-center justify-between flex-wrap; }
+  nav ul { @apply flex flex-wrap list-none m-0 p-1; }
+  nav ul li a {
+    @apply block px-4 py-3 text-white font-semibold text-sm no-underline rounded-md transition-colors hover:bg-white/20;
+  }
+  nav ul li a.active { @apply bg-white text-brand font-bold hover:bg-white; }
+  .logout-link a { @apply block px-4 py-3 mr-1 text-white font-semibold text-sm no-underline rounded-md hover:bg-white/20; }
+
+  /* Table + hover image preview side-by-side (offend.php) */
+  .row { @apply flex items-start; }
+  .table-container { @apply mr-5; }
+
+  /* Photo grid cards (all.php, survey.php, offender_photos.php) */
+  .offenceenv { @apply clear-both border border-red-600 rounded-lg mb-4 bg-slate-100 overflow-hidden p-2; }
+  .offenceheading { @apply clear-both bg-red-600 text-white px-3 py-2 -m-2 mb-2 text-base font-bold rounded-t-md; }
+  .offence { @apply w-[200px] float-left m-1.5 border-2 border-red-600 rounded-lg bg-white shadow-sm overflow-hidden; }
+  .offence img { @apply w-full block; }
+  .timestamp { @apply text-center text-xs p-2; }
+  .vehicle { @apply block; }
+
+  /* Pagination (all.php) */
+  .pagination { @apply clear-both text-center py-5; }
+  .pagination a, .pagination span {
+    @apply inline-block px-3 py-2 mx-0.5 border border-slate-300 rounded-md no-underline text-brand bg-white;
+  }
+  .pagination .current { @apply bg-brand text-white border-brand; }
+
+  /* Hover image preview (offend.php) */
+  #image-preview {
+    @apply my-4 w-[400px] border-2 border-brand rounded-lg bg-slate-50 flex items-center justify-center overflow-hidden relative p-0.5;
+  }
+  #image-preview img { @apply hidden max-w-full max-h-full; }
+  .plate:hover, .unitnumber:hover { @apply bg-indigo-50; }
+
+  /* Development banner */
+  .dev-banner { @apply bg-red-600 text-white text-center py-2 font-bold rounded-md mb-3; }
+
+  /* offend.php: compact offenders table header */
+  #offenders th { @apply text-xs px-1 py-0.5 text-center; }
+
+  /* all.php: edit modals + loading overlay */
+  #editModal, #editNoticeModal {
+    @apply hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] bg-white border border-slate-200 rounded-lg shadow-xl p-5 z-[9999];
+  }
+  #modalOverlay {
+    @apply hidden fixed inset-0 bg-black/40 z-[9998];
+  }
+  #loadingOverlay {
+    @apply flex fixed inset-0 w-full h-full bg-white/90 z-[10000] justify-center items-center text-2xl text-brand;
+  }
+
+  /* survey.php: taller photo cards */
+  .survey-page .offence { height: 425px; }
+}

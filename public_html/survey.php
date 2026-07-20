@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Parking Survey - All photos</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>.offence { height:425px} </style>
+    <?php include 'tailwind-theme.php'; ?>
 </head>
-<body>
+<body class="survey-page">
+<div class="container">
 <?php
 
 include 'nav.php';
@@ -90,5 +90,6 @@ if ($result->num_rows > 0) {
 Database::close();
 
 ?>
+</div>
 </body>
 </html>

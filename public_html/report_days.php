@@ -90,35 +90,35 @@ try {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parking Photos Weekly Report</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: auto; }
-        .filter-form { background: #f4f4f4; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-        .filter-form label { margin-right: 10px; font-weight: bold;}
-        .filter-form input { margin-right: 15px; padding: 5px; }
-        .filter-form button { padding: 6px 15px; cursor: pointer; }
-    </style>
+    <?php include 'tailwind-theme.php'; ?>
 </head>
-<body>
+<body class="bg-slate-100">
+    <div class="max-w-4xl mx-auto p-5">
 
     <h2>Days per Week with Parking Photos</h2>
 
-    <div class="filter-form">
-        <form method="GET" action="">
-            <label for="start_date">Start Date:</label>
-            <input type="date" id="start_date" name="start_date" value="<?php echo htmlspecialchars($startDateInput); ?>">
+    <div class="filter-form flex items-center flex-wrap gap-3 bg-white p-4 rounded-lg shadow-sm mb-5">
+        <form method="GET" action="" class="flex items-center flex-wrap gap-3">
+            <div class="flex items-center gap-1.5">
+                <label for="start_date" class="font-bold">Start Date:</label>
+                <input type="date" id="start_date" name="start_date" value="<?php echo htmlspecialchars($startDateInput); ?>">
+            </div>
 
-            <label for="end_date">End Date:</label>
-            <input type="date" id="end_date" name="end_date" value="<?php echo htmlspecialchars($endDateInput); ?>">
+            <div class="flex items-center gap-1.5">
+                <label for="end_date" class="font-bold">End Date:</label>
+                <input type="date" id="end_date" name="end_date" value="<?php echo htmlspecialchars($endDateInput); ?>">
+            </div>
 
             <button type="submit">Filter</button>
-            <a href="?" style="margin-left:10px; text-decoration:none; color: #d9534f;">Clear</a>
+            <a href="?" class="text-red-500 hover:text-red-600">Clear</a>
         </form>
     </div>
 
-    <div>
+    <div class="bg-white p-4 rounded-lg shadow-sm">
         <canvas id="parkingChart"></canvas>
     </div>
 
@@ -173,5 +173,6 @@ try {
             }
         });
     </script>
+    </div>
 </body>
 </html>

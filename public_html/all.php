@@ -4,61 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Parking - All photos</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        #editModal, #editNoticeModal {
-            display: none;
-            position: fixed;
-            top: 20%;
-            left: 40%;
-            width: 300px;
-            background-color: #fff;
-            border: 2px solid #333;
-            padding: 15px;
-            z-index: 9999;
-        }
-        #modalOverlay {
-            display: none;
-            position: fixed;
-            top: 0; 
-            left: 0; 
-            right: 0; 
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.3);
-            z-index: 9998;
-        }
-        .pagination {
-            clear: both;
-            text-align: center;
-            padding: 20px;
-        }
-        .pagination a, .pagination span {
-            padding: 8px 12px;
-            margin: 0 2px;
-            border: 1px solid #ddd;
-            text-decoration: none;
-            color: #4e54c8;
-        }
-        .pagination .current {
-            background-color: #4e54c8;
-            color: white;
-            border-color: #4e54c8;
-        }
-        #loadingOverlay {
-            display: flex; /* Initially visible */
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white */
-            z-index: 10000; /* Higher than other modals to ensure it's on top */
-            justify-content: center; /* Center content horizontally */
-            align-items: center; /* Center content vertically */
-            font-size: 2em; /* Larger text for visibility */
-            color: #4e54c8; /* Match accent color */
-        }
-    </style>
+    <?php include 'tailwind-theme.php'; ?>
     <script>
         function openEditModal(id, plate, containsnumber, containscar, containsvisitor) {
             // Fill the form fields with the row data
@@ -158,16 +104,25 @@ if (!isset($_GET['id'])) {
     $end_date = isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : '';
     $notice_only_checked = isset($_GET['notice_only']) && $_GET['notice_only'] == '1' ? 'checked' : '';
 ?>
-    <form method="GET" action="all.php" style="padding: 10px; background: white; border-radius: 5px; margin-bottom: 20px;">
-        <label for="search_plate">Plate:</label>
-        <input type="text" name="plate" id="search_plate" value="<?php echo $search_plate; ?>" style="width: 150px; padding: 5px;">
-        <label for="start_date" style="margin-left: 10px;">From:</label>
-        <input type="date" name="start_date" id="start_date" value="<?php echo $start_date; ?>" style="padding: 5px;">
-        <label for="end_date" style="margin-left: 10px;">To:</label>
-        <input type="date" name="end_date" id="end_date" value="<?php echo $end_date; ?>" style="padding: 5px;">
-        <input type="checkbox" name="notice_only" id="notice_only" value="1" <?php echo $notice_only_checked; ?> style="margin-left: 10px; vertical-align: middle;"> <label for="notice_only" style="vertical-align: middle;">Notices Only</label>
-        <button type="submit" style="width: auto; height: auto; padding: 6px 12px; margin-left: 10px;">Search</button>
-        <a href="all.php" style="display: inline-block; text-decoration: none; background-color: #6c757d; color: white; padding: 7px 12px; border-radius: 3px; font-size: 13.333px; margin-left: 5px; vertical-align: middle; border: 1px solid #6c757d;">Reset</a>
+    <form method="GET" action="all.php" class="flex items-center flex-wrap gap-3 p-3 bg-white rounded-lg shadow-sm mb-5">
+        <div class="flex items-center gap-1.5">
+            <label for="search_plate">Plate:</label>
+            <input type="text" name="plate" id="search_plate" value="<?php echo $search_plate; ?>" class="w-36">
+        </div>
+        <div class="flex items-center gap-1.5">
+            <label for="start_date">From:</label>
+            <input type="date" name="start_date" id="start_date" value="<?php echo $start_date; ?>">
+        </div>
+        <div class="flex items-center gap-1.5">
+            <label for="end_date">To:</label>
+            <input type="date" name="end_date" id="end_date" value="<?php echo $end_date; ?>">
+        </div>
+        <div class="flex items-center gap-1.5">
+            <input type="checkbox" name="notice_only" id="notice_only" value="1" <?php echo $notice_only_checked; ?>>
+            <label for="notice_only">Notices Only</label>
+        </div>
+        <button type="submit">Search</button>
+        <a href="all.php" class="inline-block no-underline bg-slate-500 text-white px-3 py-1.5 rounded-md text-sm hover:text-white hover:bg-slate-600">Reset</a>
     </form>
 <?php
 }
