@@ -175,8 +175,8 @@ foreach ($noticeQueryStrings as $queryString) {
 Database::close();
 
 // --- Emailing Section ---
-$to = "00511306782@print.brother.com";  // PW Printer
-//$to = "21055527210@print.brother.com";  // BM Printer
+//$to = "00511306782@print.brother.com";  // PW Printer
+$to = "21055527210@print.brother.com";  // BM Printer
 $subject = "Parking Breach Notices - " . date("Y-m-d H:i");
 $from = "no-reply@completewebservices.com.au"; // CHANGE THIS to a valid sending email address.
 $boundary = "boundary-" . md5(time());

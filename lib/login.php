@@ -122,7 +122,7 @@ $members = ['admin@sc.kingstonquarter.com.au',
 'lipakshidas@gmail.com',
 'Management@kingstonquarter.com.au',
 'management@kingstonquarter.com.au',
-'ricky@sydneybmp.com.au'];
+'curtis@sydneybmp.com.au'];
 
 
 if (in_array($email, $members)) {

@@ -36,9 +36,9 @@ try {
         die("Error: Invalid request.");
     }
 } catch (Exception $e) {
-    error_log($e->getMessage());
-    http_response_code(500);
-    die("Error: " . $e->getMessage());
+    ExceptionLogger::handle($e);
+    Database::close();
+    exit;
 }
 
 // If a plate was processed, show its history
